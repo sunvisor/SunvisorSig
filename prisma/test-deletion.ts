@@ -1,0 +1,242 @@
+import { mkdir, writeFile } from "node:fs/promises";
+import { dirname, join } from "node:path";
+import {
+  ForumRole,
+  UserStatus,
+} from "@prisma/client";
+import { deleteCommentById, deletePostById, purgeExpiredDeletedData } from "@/lib/deletion-service";
+import { prisma } from "@/lib/prisma";
+
+function assert(condition: unknown, message: string): asserts condition {
+  if (!condition) {
+    throw new Error(message);
+  }
+}
+
+async function createUploadFile(storagePath: string) {
+  const filePath = join(process.cwd(), "public", storagePath.replace(/^\/+/, ""));
+  await mkdir(dirname(filePath), { recursive: true }).catch(() => {});
+  await writeFile(filePath, "test");
+}
+
+async function main() {
+  const suffix = Date.now().toString();
+
+  const admin = await prisma.user.create({
+    data: {
+      displayName: `Deletion Admin ${suffix}`,
+      email: `deletion-admin-${suffix}@example.com`,
+      status: UserStatus.ACTIVE,
+    },
+  });
+
+  const member = await prisma.user.create({
+    data: {
+      displayName: `Deletion Member ${suffix}`,
+      email: `deletion-member-${suffix}@example.com`,
+      status: UserStatus.ACTIVE,
+    },
+  });
+
+  const forum = await prisma.forum.create({
+    data: {
+      name: `Deletion Forum ${suffix}`,
+      createdByUserId: admin.id,
+    },
+  });
+
+  await prisma.forumMember.createMany({
+    data: [
+      { forumId: forum.id, userId: admin.id, role: ForumRole.ADMIN },
+      { forumId: forum.id, userId: member.id, role: ForumRole.PARTICIPANT },
+    ],
+  });
+
+  const channel = await prisma.channel.create({
+    data: {
+      forumId: forum.id,
+      name: `Deletion Channel ${suffix}`,
+      createdByUserId: admin.id,
+    },
+  });
+
+  const commentDeletionPost = await prisma.post.create({
+    data: {
+      channelId: channel.id,
+      authorUserId: admin.id,
+      title: "Comment deletion target",
+      bodyMarkdown: "comment deletion",
+    },
+  });
+
+  const commentDeletionComment = await prisma.comment.create({
+    data: {
+      postId: commentDeletionPost.id,
+      authorUserId: member.id,
+      bodyMarkdown: "delete me",
+    },
+  });
+
+  const commentAttachment = await prisma.commentAttachment.create({
+    data: {
+      commentId: commentDeletionComment.id,
+      storagePath: `/uploads/comments/${commentDeletionComment.id}/note.txt`,
+      originalFilename: "note.txt",
+      mimeType: "text/plain",
+      sizeBytes: 4,
+    },
+  });
+
+  await deleteCommentById({
+    forumId: forum.id,
+    channelId: channel.id,
+    postId: commentDeletionPost.id,
+    commentId: commentDeletionComment.id,
+  });
+
+  const deletedComment = await prisma.deletedComment.findUnique({
+    where: { originalCommentId: commentDeletionComment.id },
+  });
+  assert(deletedComment, "deleted comment was not created");
+
+  const deletedCommentAttachment = await prisma.deletedAttachment.findUnique({
+    where: { originalAttachmentId: commentAttachment.id },
+  });
+  assert(deletedCommentAttachment, "deleted attachment for comment was not created");
+
+  const removedComment = await prisma.comment.findUnique({
+    where: { id: commentDeletionComment.id },
+  });
+  assert(!removedComment, "comment still exists after deletion");
+
+  const postDeletionPost = await prisma.post.create({
+    data: {
+      channelId: channel.id,
+      authorUserId: admin.id,
+      title: "Post deletion target",
+      bodyMarkdown: "post deletion",
+    },
+  });
+
+  const postAttachment = await prisma.postAttachment.create({
+    data: {
+      postId: postDeletionPost.id,
+      storagePath: `/uploads/posts/${postDeletionPost.id}/guide.pdf`,
+      originalFilename: "guide.pdf",
+      mimeType: "application/pdf",
+      sizeBytes: 4,
+    },
+  });
+
+  const nestedComment = await prisma.comment.create({
+    data: {
+      postId: postDeletionPost.id,
+      authorUserId: member.id,
+      bodyMarkdown: "nested comment",
+    },
+  });
+
+  const nestedAttachment = await prisma.commentAttachment.create({
+    data: {
+      commentId: nestedComment.id,
+      storagePath: `/uploads/comments/${nestedComment.id}/capture.png`,
+      originalFilename: "capture.png",
+      mimeType: "image/png",
+      sizeBytes: 4,
+    },
+  });
+
+  await deletePostById({
+    forumId: forum.id,
+    channelId: channel.id,
+    postId: postDeletionPost.id,
+  });
+
+  const deletedPost = await prisma.deletedPost.findUnique({
+    where: { originalPostId: postDeletionPost.id },
+  });
+  assert(deletedPost, "deleted post was not created");
+
+  const deletedNestedComment = await prisma.deletedComment.findUnique({
+    where: { originalCommentId: nestedComment.id },
+  });
+  assert(deletedNestedComment, "deleted nested comment was not created");
+
+  const deletedPostAttachment = await prisma.deletedAttachment.findUnique({
+    where: { originalAttachmentId: postAttachment.id },
+  });
+  assert(deletedPostAttachment, "deleted attachment for post was not created");
+
+  const deletedNestedAttachment = await prisma.deletedAttachment.findUnique({
+    where: { originalAttachmentId: nestedAttachment.id },
+  });
+  assert(deletedNestedAttachment, "deleted nested attachment was not created");
+
+  await prisma.deletedAttachment.updateMany({
+    where: {
+      id: {
+        in: [
+          deletedCommentAttachment.id,
+          deletedPostAttachment.id,
+          deletedNestedAttachment.id,
+        ],
+      },
+    },
+    data: {
+      purgeAfter: new Date(Date.now() - 60_000),
+    },
+  });
+
+  await prisma.deletedComment.updateMany({
+    where: {
+      id: {
+        in: [deletedComment.id, deletedNestedComment.id],
+      },
+    },
+    data: {
+      purgeAfter: new Date(Date.now() - 60_000),
+    },
+  });
+
+  await prisma.deletedPost.update({
+    where: { id: deletedPost.id },
+    data: {
+      purgeAfter: new Date(Date.now() - 60_000),
+    },
+  });
+
+  await Promise.all([
+    createUploadFile(deletedCommentAttachment.storagePath),
+    createUploadFile(deletedPostAttachment.storagePath),
+    createUploadFile(deletedNestedAttachment.storagePath),
+  ]);
+
+  const purgeResult = await purgeExpiredDeletedData(new Date());
+
+  assert(purgeResult.deletedAttachmentRecords >= 3, "attachment purge did not run");
+  assert(purgeResult.deletedComments >= 2, "comment purge did not run");
+  assert(purgeResult.deletedPosts >= 1, "post purge did not run");
+  assert(purgeResult.deletedFiles >= 3, "file purge did not remove local files");
+
+  console.log(
+    JSON.stringify(
+      {
+        status: "ok",
+        deletedCommentId: commentDeletionComment.id,
+        deletedPostId: postDeletionPost.id,
+        purgeResult,
+      },
+      null,
+      2,
+    ),
+  );
+}
+
+main()
+  .catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });

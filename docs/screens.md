@@ -90,4 +90,4 @@
 
 - コメントへのコメントは作らない
 - 投稿とコメントの本文は Markdown で保存する
-- 添付ファイル参照は [markdown.md](/Users/sunvisor/projects/SunvisorSig/specs/markdown.md) の独自記法に従う
+- 添付ファイル参照は [markdown.md](/Users/sunvisor/projects/SunvisorSig/docs/markdown.md) の独自記法に従う
