@@ -38,6 +38,10 @@ docker compose up --build
 2. ブラウザで `http://localhost:3000` を開きます。
 3. `Hello World` が表示されれば起動完了です。
 
+補足:
+- PostgreSQL はホスト側で `localhost:55432` に公開されます
+- Docker 外から Prisma や SQL クライアントで接続する場合は `.env` の `DATABASE_URL` も `localhost:55432` を使います
+
 バックグラウンドで起動する場合:
 
 ```bash
