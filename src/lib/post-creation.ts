@@ -1,0 +1,129 @@
+import { mkdir, writeFile } from "node:fs/promises";
+import path from "node:path";
+import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
+import { prisma } from "@/lib/prisma";
+
+function sanitizeFilename(filename: string) {
+  return filename
+    .normalize("NFKC")
+    .replace(/[\\/:*?"<>|\u0000-\u001f]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function splitFilename(filename: string) {
+  const ext = path.extname(filename);
+  const base = ext ? filename.slice(0, -ext.length) : filename;
+  return { base, ext };
+}
+
+function buildDedupedFilename(filename: string, usedNames: Set<string>) {
+  const safeName = sanitizeFilename(filename) || "file";
+
+  if (!usedNames.has(safeName)) {
+    usedNames.add(safeName);
+    return safeName;
+  }
+
+  const { base, ext } = splitFilename(safeName);
+  let index = 2;
+
+  while (true) {
+    const candidate = `${base}(${index})${ext}`;
+
+    if (!usedNames.has(candidate)) {
+      usedNames.add(candidate);
+      return candidate;
+    }
+
+    index += 1;
+  }
+}
+
+export async function createPost(formData: FormData) {
+  "use server";
+
+  const forumId = String(formData.get("forumId") ?? "");
+  const channelId = String(formData.get("channelId") ?? "");
+  const authorUserId = String(formData.get("authorUserId") ?? "");
+  const title = String(formData.get("title") ?? "").trim();
+  const bodyMarkdown = String(formData.get("bodyMarkdown") ?? "").trim();
+  const files = formData
+    .getAll("attachments")
+    .filter((value): value is File => value instanceof File && value.size > 0);
+
+  if (!forumId || !channelId || !authorUserId || !title || !bodyMarkdown) {
+    throw new Error("必須項目が不足しています。");
+  }
+
+  const channel = await prisma.channel.findUnique({
+    where: { id: channelId },
+    include: {
+      forum: true,
+    },
+  });
+
+  if (!channel || channel.forumId !== forumId) {
+    throw new Error("チャンネルが見つかりません。");
+  }
+
+  const membership = await prisma.forumMember.findUnique({
+    where: {
+      forumId_userId: {
+        forumId,
+        userId: authorUserId,
+      },
+    },
+  });
+
+  if (!membership) {
+    throw new Error("このフォーラムの参加者のみ投稿できます。");
+  }
+
+  const post = await prisma.post.create({
+    data: {
+      channelId,
+      authorUserId,
+      title,
+      bodyMarkdown,
+    },
+  });
+
+  if (files.length > 0) {
+    const uploadDir = path.join(
+      process.cwd(),
+      "public",
+      "uploads",
+      "posts",
+      post.id,
+    );
+    const usedNames = new Set<string>();
+
+    await mkdir(uploadDir, { recursive: true });
+
+    for (const file of files) {
+      const originalFilename = buildDedupedFilename(file.name, usedNames);
+      const storagePath = `/uploads/posts/${post.id}/${originalFilename}`;
+      const buffer = Buffer.from(await file.arrayBuffer());
+
+      await writeFile(path.join(uploadDir, originalFilename), buffer);
+
+      await prisma.postAttachment.create({
+        data: {
+          postId: post.id,
+          storagePath,
+          originalFilename,
+          mimeType: file.type || "application/octet-stream",
+          sizeBytes: buffer.byteLength,
+        },
+      });
+    }
+  }
+
+  revalidatePath("/forums");
+  revalidatePath(`/forums/${forumId}`);
+  revalidatePath(`/forums/${forumId}/channels/${channelId}`);
+  revalidatePath(`/forums/${forumId}/channels/${channelId}/posts/${post.id}`);
+  redirect(`/forums/${forumId}/channels/${channelId}/posts/${post.id}`);
+}

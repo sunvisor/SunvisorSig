@@ -58,7 +58,16 @@ export const getChannel = cache(async (channelId: string) => {
   return prisma.channel.findUnique({
     where: { id: channelId },
     include: {
-      forum: true,
+      forum: {
+        include: {
+          members: {
+            include: {
+              user: true,
+            },
+            orderBy: { joinedAt: "asc" },
+          },
+        },
+      },
       createdByUser: true,
       posts: {
         orderBy: { createdAt: "desc" },

@@ -12,6 +12,7 @@ pnpm-debug.log*
 *.tsbuildinfo
 dist
 prisma/dev.db
+public/uploads
 
 # Jetbrains と VSCode の設定ファイルを除外する
 .idea/
