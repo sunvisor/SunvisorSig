@@ -95,7 +95,16 @@ export const getPost = cache(async (postId: string) => {
     include: {
       channel: {
         include: {
-          forum: true,
+          forum: {
+            include: {
+              members: {
+                include: {
+                  user: true,
+                },
+                orderBy: { joinedAt: "asc" },
+              },
+            },
+          },
         },
       },
       authorUser: true,

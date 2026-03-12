@@ -1,35 +1,38 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { buildDedupedFilename } from "@/lib/attachment-filename";
 import { prisma } from "@/lib/prisma";
+import { buildDedupedFilename } from "@/lib/attachment-filename";
 
-export async function createPost(formData: FormData) {
+export async function createComment(formData: FormData) {
   "use server";
 
   const forumId = String(formData.get("forumId") ?? "");
   const channelId = String(formData.get("channelId") ?? "");
+  const postId = String(formData.get("postId") ?? "");
   const authorUserId = String(formData.get("authorUserId") ?? "");
-  const title = String(formData.get("title") ?? "").trim();
   const bodyMarkdown = String(formData.get("bodyMarkdown") ?? "").trim();
   const files = formData
     .getAll("attachments")
     .filter((value): value is File => value instanceof File && value.size > 0);
 
-  if (!forumId || !channelId || !authorUserId || !title || !bodyMarkdown) {
+  if (!forumId || !channelId || !postId || !authorUserId || !bodyMarkdown) {
     throw new Error("必須項目が不足しています。");
   }
 
-  const channel = await prisma.channel.findUnique({
-    where: { id: channelId },
+  const post = await prisma.post.findUnique({
+    where: { id: postId },
     include: {
-      forum: true,
+      channel: true,
     },
   });
 
-  if (!channel || channel.forumId !== forumId) {
-    throw new Error("チャンネルが見つかりません。");
+  if (
+    !post ||
+    post.channelId !== channelId ||
+    post.channel.forumId !== forumId
+  ) {
+    throw new Error("投稿が見つかりません。");
   }
 
   const membership = await prisma.forumMember.findUnique({
@@ -42,14 +45,13 @@ export async function createPost(formData: FormData) {
   });
 
   if (!membership) {
-    throw new Error("このフォーラムの参加者のみ投稿できます。");
+    throw new Error("このフォーラムの参加者のみコメントできます。");
   }
 
-  const post = await prisma.post.create({
+  const comment = await prisma.comment.create({
     data: {
-      channelId,
+      postId,
       authorUserId,
-      title,
       bodyMarkdown,
     },
   });
@@ -59,8 +61,8 @@ export async function createPost(formData: FormData) {
       process.cwd(),
       "public",
       "uploads",
-      "posts",
-      post.id,
+      "comments",
+      comment.id,
     );
     const usedNames = new Set<string>();
 
@@ -68,14 +70,14 @@ export async function createPost(formData: FormData) {
 
     for (const file of files) {
       const originalFilename = buildDedupedFilename(file.name, usedNames);
-      const storagePath = `/uploads/posts/${post.id}/${originalFilename}`;
+      const storagePath = `/uploads/comments/${comment.id}/${originalFilename}`;
       const buffer = Buffer.from(await file.arrayBuffer());
 
       await writeFile(path.join(uploadDir, originalFilename), buffer);
 
-      await prisma.postAttachment.create({
+      await prisma.commentAttachment.create({
         data: {
-          postId: post.id,
+          commentId: comment.id,
           storagePath,
           originalFilename,
           mimeType: file.type || "application/octet-stream",
@@ -85,9 +87,5 @@ export async function createPost(formData: FormData) {
     }
   }
 
-  revalidatePath("/forums");
-  revalidatePath(`/forums/${forumId}`);
-  revalidatePath(`/forums/${forumId}/channels/${channelId}`);
-  revalidatePath(`/forums/${forumId}/channels/${channelId}/posts/${post.id}`);
-  redirect(`/forums/${forumId}/channels/${channelId}/posts/${post.id}`);
+  revalidatePath(`/forums/${forumId}/channels/${channelId}/posts/${postId}`);
 }

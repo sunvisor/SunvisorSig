@@ -1,5 +1,6 @@
 import type { Route } from "next";
 import { notFound } from "next/navigation";
+import { CommentComposer } from "@/components/comment-composer";
 import { ForumShell } from "@/components/forum-shell";
 import {
   EmptyState,
@@ -8,6 +9,7 @@ import {
   SectionCard,
 } from "@/components/forum-ui";
 import { MarkdownContent } from "@/components/markdown-content";
+import { createComment } from "@/lib/comment-creation";
 import { getPost } from "@/lib/forum-data";
 
 type PostPageProps = Readonly<{
@@ -97,6 +99,18 @@ export default async function PostPage({ params }: PostPageProps) {
                 ))}
               </div>
             )}
+            <CommentComposer
+              action={createComment}
+              channelId={channelId}
+              forumId={forumId}
+              members={post.channel.forum.members.map((member) => ({
+                id: member.id,
+                role: member.role,
+                userId: member.userId,
+                displayName: member.user.displayName,
+              }))}
+              postId={postId}
+            />
           </SectionCard>
         </div>
         <SectionCard title="投稿情報">
