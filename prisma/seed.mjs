@@ -40,6 +40,17 @@ async function main() {
     data: {
       name: "Acme 導入フォーラム",
       description: "Acme 向けの導入・運用相談フォーラム",
+      themeName: "Sunset",
+      themeAccent: "#c2410c",
+      themeAccentSoft: "#ffedd5",
+      themeSurface: "#fffaf5",
+      themeSurfaceMuted: "#fff7ed",
+      themeBorder: "#fdba74",
+      themeText: "#7c2d12",
+      themeTextMuted: "#9a3412",
+      themeTextSubtle: "#c2410c",
+      themePageFrom: "#fff7ed",
+      themePageTo: "#ffedd5",
       createdByUserId: admin.id,
     },
   });

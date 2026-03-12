@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { ui } from "@/lib/ui-classes";
 
 type ConfirmSubmitButtonProps = Readonly<{
   children: React.ReactNode;
@@ -32,11 +33,11 @@ export function ConfirmSubmitButton({
       {isOpen && typeof document !== "undefined"
         ? createPortal(
             <div
-              className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/40 p-6"
+              className={ui.modal.overlay}
               onClick={() => setIsOpen(false)}
             >
               <div
-                className="w-full max-w-lg overflow-hidden rounded-[2rem] border border-slate-700 bg-slate-900 shadow-2xl shadow-black/40"
+                className={`w-full max-w-lg ${ui.modal.shell}`}
                 onClick={(event) => event.stopPropagation()}
               >
                 <div className="border-b border-slate-800 px-6 py-5">
@@ -47,16 +48,16 @@ export function ConfirmSubmitButton({
                     </p>
                   ) : null}
                 </div>
-                <div className="flex items-center justify-end gap-3 px-6 py-5">
+                <div className={ui.modal.footer}>
                   <button
-                    className="inline-flex items-center rounded-full border border-slate-600 px-4 py-2 text-sm font-medium text-white transition hover:border-slate-400 hover:bg-slate-800"
+                    className={ui.button.modalGhost}
                     onClick={() => setIsOpen(false)}
                     type="button"
                   >
                     キャンセル
                   </button>
                   <button
-                    className="inline-flex items-center rounded-full bg-rose-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-rose-400"
+                    className={ui.button.modalDanger}
                     onClick={() => {
                       setIsOpen(false);
                       buttonRef.current?.form?.requestSubmit();

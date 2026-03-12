@@ -2,17 +2,27 @@
 
 :root {
   color-scheme: light;
-  --background: #f8fafc;
-  --foreground: #0f172a;
-  --card: #ffffff;
-  --border: #cbd5e1;
+  --theme-accent: #0f766e;
+  --theme-accent-soft: #ccfbf1;
+  --theme-surface: #ffffff;
+  --theme-surface-muted: #f8fafc;
+  --theme-border: #cbd5e1;
+  --theme-text: #0f172a;
+  --theme-text-muted: #475569;
+  --theme-text-subtle: #94a3b8;
+  --theme-page-from: #f8fafc;
+  --theme-page-to: #eff6ff;
 }
 
 body {
   background:
-    radial-gradient(circle at top, rgba(59, 130, 246, 0.12), transparent 42%),
-    linear-gradient(180deg, #f8fafc 0%, #eff6ff 100%);
-  color: var(--foreground);
+    radial-gradient(
+      circle at top,
+      color-mix(in srgb, var(--theme-accent-soft) 70%, transparent),
+      transparent 42%
+    ),
+    linear-gradient(180deg, var(--theme-page-from) 0%, var(--theme-page-to) 100%);
+  color: var(--theme-text);
   min-height: 100vh;
 }
 

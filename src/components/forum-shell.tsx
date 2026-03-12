@@ -1,5 +1,6 @@
 import type { Route } from "next";
 import Link from "next/link";
+import { ui } from "@/lib/ui-classes";
 
 type ForumShellProps = Readonly<{
   title: string;
@@ -10,6 +11,7 @@ type ForumShellProps = Readonly<{
     label: string;
   }>;
   actions?: React.ReactNode;
+  themeStyle?: React.CSSProperties;
   children: React.ReactNode;
 }>;
 
@@ -19,12 +21,13 @@ export function ForumShell({
   description,
   breadcrumbs = [],
   actions,
+  themeStyle,
   children,
 }: ForumShellProps) {
   return (
-    <main className="min-h-screen px-6 py-10">
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-8">
-        <header className="rounded-4xl border border-slate-300/80 bg-white/85 p-8 shadow-xl shadow-slate-900/5 backdrop-blur">
+    <main className={ui.page.shell} style={themeStyle}>
+      <div className={ui.page.container}>
+        <header className={ui.surface.hero}>
           {breadcrumbs.length > 0 ? (
             <nav className="mb-5 flex flex-wrap items-center gap-2 text-sm text-slate-500">
               {breadcrumbs.map((item, index) => (
@@ -43,16 +46,10 @@ export function ForumShell({
           ) : null}
           <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div>
-              <p className="text-sm font-medium uppercase tracking-[0.28em] text-sky-700">
-                {eyebrow}
-              </p>
-              <h1 className="mt-3 text-4xl font-semibold tracking-tight text-slate-950 md:text-5xl">
-                {title}
-              </h1>
+              <p className={ui.text.eyebrow}>{eyebrow}</p>
+              <h1 className={ui.text.title}>{title}</h1>
               {description ? (
-                <p className="mt-4 max-w-3xl text-base leading-7 text-slate-600 md:text-lg">
-                  {description}
-                </p>
+                <p className={ui.text.description}>{description}</p>
               ) : null}
             </div>
             {actions ? <div className="flex items-center gap-3">{actions}</div> : null}

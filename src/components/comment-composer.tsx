@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { ui } from "@/lib/ui-classes";
 import { SubmitButton } from "@/components/submit-button";
 
 type MemberOption = {
@@ -30,19 +31,16 @@ export function CommentComposer({
   return (
     <div className="mt-6">
       {isOpen ? (
-        <form
-          action={action}
-          className="grid gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-5"
-        >
+        <form action={action} className={ui.form.panel}>
           <input name="forumId" type="hidden" value={forumId} />
           <input name="channelId" type="hidden" value={channelId} />
           <input name="postId" type="hidden" value={postId} />
-          <div className="grid gap-2">
-            <label className="text-sm font-medium text-slate-900" htmlFor="commentAuthorUserId">
+          <div className={ui.form.group}>
+            <label className={ui.text.label} htmlFor="commentAuthorUserId">
               投稿者
             </label>
             <select
-              className="rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-sky-500"
+              className={ui.form.select}
               defaultValue={members[0]?.userId ?? ""}
               id="commentAuthorUserId"
               name="authorUserId"
@@ -55,12 +53,12 @@ export function CommentComposer({
               ))}
             </select>
           </div>
-          <div className="grid gap-2">
-            <label className="text-sm font-medium text-slate-900" htmlFor="commentBodyMarkdown">
+          <div className={ui.form.group}>
+            <label className={ui.text.label} htmlFor="commentBodyMarkdown">
               コメント本文
             </label>
             <textarea
-              className="min-h-44 rounded-3xl border border-slate-300 bg-white px-4 py-4 text-sm leading-7 text-slate-900 outline-none transition focus:border-sky-500"
+              className={`${ui.form.textarea} min-h-44`}
               id="commentBodyMarkdown"
               name="bodyMarkdown"
               placeholder={
@@ -69,22 +67,22 @@ export function CommentComposer({
               required
             />
           </div>
-          <div className="grid gap-2">
-            <label className="text-sm font-medium text-slate-900" htmlFor="commentAttachments">
+          <div className={ui.form.group}>
+            <label className={ui.text.label} htmlFor="commentAttachments">
               添付ファイル
             </label>
             <input
-              className="rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-5 text-sm text-slate-700 file:mr-4 file:rounded-full file:border-0 file:bg-slate-950 file:px-4 file:py-2 file:text-sm file:font-medium file:text-white"
+              className={ui.form.fileInput}
               id="commentAttachments"
               multiple
               name="attachments"
               type="file"
             />
           </div>
-          <div className="flex items-center gap-3">
+          <div className={ui.form.actions}>
             <SubmitButton>コメントする</SubmitButton>
             <button
-              className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-5 py-2.5 text-sm font-medium text-slate-700 transition hover:border-slate-400 hover:bg-slate-100"
+              className={ui.button.secondary}
               onClick={() => setIsOpen(false)}
               type="button"
             >
@@ -94,7 +92,7 @@ export function CommentComposer({
         </form>
       ) : (
         <button
-          className="inline-flex items-center justify-center rounded-full bg-slate-950 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-slate-800"
+          className={ui.button.primary}
           onClick={() => setIsOpen(true)}
           type="button"
         >

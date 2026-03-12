@@ -4,6 +4,7 @@ import { ForumShell } from "@/components/forum-shell";
 import { EmptyState, MetadataRow, PrimaryLink, SectionCard } from "@/components/forum-ui";
 import { formatDateTime } from "@/lib/date-time";
 import { getForums } from "@/lib/forum-data";
+import { ui } from "@/lib/ui-classes";
 
 export default async function ForumsPage() {
   const forums = await getForums();
@@ -21,12 +22,12 @@ export default async function ForumsPage() {
           description="seed データ投入後に、ここへフォーラム一覧が表示されます。"
         />
       ) : (
-        <div className="grid gap-6">
+        <div className={ui.page.sectionGrid}>
           {forums.map((forum) => (
             <SectionCard key={forum.id} title={forum.name}>
               <div className="flex flex-col gap-5">
-                <p className="text-sm leading-7 text-slate-600">{forum.description}</p>
-                <dl className="grid gap-3 md:grid-cols-3">
+                <p className={ui.text.body}>{forum.description}</p>
+                <dl className={ui.list.metadataGrid3}>
                   <MetadataRow label="チャンネル数" value={forum._count.channels} />
                   <MetadataRow label="参加者数" value={forum.members.length} />
                   <MetadataRow
@@ -37,15 +38,15 @@ export default async function ForumsPage() {
                 <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
                   Updated {formatDateTime(forum.updatedAt)}
                 </p>
-                <div className="grid gap-3 md:grid-cols-2">
+                <div className={ui.list.responsiveCards}>
                   {forum.channels.map((channel) => (
                     <Link
                       key={channel.id}
-                      className="rounded-2xl border border-slate-200 bg-slate-50 p-4 transition hover:border-slate-400 hover:bg-white"
+                      className={`${ui.surface.listItem} p-4`}
                       href={`/forums/${forum.id}/channels/${channel.id}` as Route}
                     >
                       <p className="font-medium text-slate-950">{channel.name}</p>
-                      <p className="mt-2 text-sm text-slate-600">{channel.description}</p>
+                      <p className={`mt-2 ${ui.text.body}`}>{channel.description}</p>
                       <p className="mt-3 text-xs uppercase tracking-[0.2em] text-slate-500">
                         Posts {channel._count.posts}
                       </p>

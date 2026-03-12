@@ -5,6 +5,8 @@ import { ForumShell } from "@/components/forum-shell";
 import { EmptyState, MetadataRow, PrimaryLink, SectionCard } from "@/components/forum-ui";
 import { formatDateTime } from "@/lib/date-time";
 import { getChannel } from "@/lib/forum-data";
+import { getForumThemeStyle } from "@/lib/forum-theme";
+import { ui } from "@/lib/ui-classes";
 
 type ChannelPageProps = Readonly<{
   params: Promise<{ forumId: string; channelId: string }>;
@@ -23,6 +25,7 @@ export default async function ChannelPage({ params }: ChannelPageProps) {
       eyebrow="Channel"
       title={channel.name}
       description={channel.description ?? undefined}
+      themeStyle={getForumThemeStyle(channel.forum)}
       breadcrumbs={[
         { href: "/forums", label: "Forums" },
         { href: `/forums/${channel.forum.id}`, label: channel.forum.name },
@@ -36,7 +39,7 @@ export default async function ChannelPage({ params }: ChannelPageProps) {
         </PrimaryLink>
       }
     >
-      <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
+      <div className={ui.page.twoColumnGrid}>
         <SectionCard title="投稿一覧">
           {channel.posts.length === 0 ? (
             <EmptyState
@@ -48,13 +51,13 @@ export default async function ChannelPage({ params }: ChannelPageProps) {
               {channel.posts.map((post) => (
                 <Link
                   key={post.id}
-                  className="rounded-2xl border border-slate-200 bg-slate-50 p-5 transition hover:border-slate-400 hover:bg-white"
+                  className={`${ui.surface.listItem} p-5`}
                   href={
                     `/forums/${channel.forum.id}/channels/${channel.id}/posts/${post.id}` as Route
                   }
                 >
                   <p className="font-medium text-slate-950">{post.title}</p>
-                  <p className="mt-2 text-sm leading-7 text-slate-600">{post.bodyMarkdown}</p>
+                  <p className={`mt-2 ${ui.text.body}`}>{post.bodyMarkdown}</p>
                   <div className="mt-4 flex flex-wrap gap-4 text-xs uppercase tracking-[0.2em] text-slate-500">
                     <span>Author {post.authorUser.displayName}</span>
                     <span>Comments {post.comments.length}</span>

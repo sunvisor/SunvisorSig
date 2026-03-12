@@ -5,6 +5,8 @@ import { PrimaryLink, SectionCard } from "@/components/forum-ui";
 import { SubmitButton } from "@/components/submit-button";
 import { createChannel } from "@/lib/channel-creation";
 import { getForum } from "@/lib/forum-data";
+import { getForumThemeStyle } from "@/lib/forum-theme";
+import { ui } from "@/lib/ui-classes";
 
 type NewChannelPageProps = Readonly<{
   params: Promise<{ forumId: string }>;
@@ -23,6 +25,7 @@ export default async function NewChannelPage({ params }: NewChannelPageProps) {
       eyebrow="Channel"
       title="チャンネル作成"
       description="フォーラム内に新しいチャンネルを追加します。"
+      themeStyle={getForumThemeStyle(forum)}
       breadcrumbs={[
         { href: "/forums", label: "Forums" },
         { href: `/forums/${forum.id}`, label: forum.name },
@@ -31,14 +34,14 @@ export default async function NewChannelPage({ params }: NewChannelPageProps) {
       actions={<PrimaryLink href={`/forums/${forum.id}` as Route}>フォーラムへ戻る</PrimaryLink>}
     >
       <SectionCard title="新規チャンネル">
-        <form action={createChannel} className="grid gap-6">
+        <form action={createChannel} className={ui.form.layout}>
           <input name="forumId" type="hidden" value={forum.id} />
-          <div className="grid gap-2">
-            <label className="text-sm font-medium text-slate-900" htmlFor="createdByUserId">
+          <div className={ui.form.group}>
+            <label className={ui.text.label} htmlFor="createdByUserId">
               作成者
             </label>
             <select
-              className="rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-sky-500"
+              className={ui.form.select}
               defaultValue={
                 forum.members.find((member) => member.role === "ADMIN")?.userId ?? ""
               }
@@ -55,12 +58,12 @@ export default async function NewChannelPage({ params }: NewChannelPageProps) {
                 ))}
             </select>
           </div>
-          <div className="grid gap-2">
-            <label className="text-sm font-medium text-slate-900" htmlFor="name">
+          <div className={ui.form.group}>
+            <label className={ui.text.label} htmlFor="name">
               チャンネル名
             </label>
             <input
-              className="rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-sky-500"
+              className={ui.form.input}
               id="name"
               name="name"
               placeholder="例: 導入準備"
@@ -68,18 +71,18 @@ export default async function NewChannelPage({ params }: NewChannelPageProps) {
               type="text"
             />
           </div>
-          <div className="grid gap-2">
-            <label className="text-sm font-medium text-slate-900" htmlFor="description">
+          <div className={ui.form.group}>
+            <label className={ui.text.label} htmlFor="description">
               説明
             </label>
             <textarea
-              className="min-h-36 rounded-3xl border border-slate-300 bg-white px-4 py-4 text-sm leading-7 text-slate-900 outline-none transition focus:border-sky-500"
+              className={`${ui.form.textarea} min-h-36`}
               id="description"
               name="description"
               placeholder="このチャンネルで扱う内容を入力してください。"
             />
           </div>
-          <div className="flex items-center gap-3">
+          <div className={ui.form.actions}>
             <SubmitButton>チャンネルを作成</SubmitButton>
             <PrimaryLink href={`/forums/${forum.id}` as Route}>キャンセル</PrimaryLink>
           </div>

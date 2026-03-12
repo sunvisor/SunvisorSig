@@ -5,6 +5,8 @@ import { ForumShell } from "@/components/forum-shell";
 import { EmptyState, MetadataRow, PrimaryLink, SectionCard } from "@/components/forum-ui";
 import { formatDateTime } from "@/lib/date-time";
 import { getForum } from "@/lib/forum-data";
+import { getForumThemeStyle } from "@/lib/forum-theme";
+import { ui } from "@/lib/ui-classes";
 
 type ForumPageProps = Readonly<{
   params: Promise<{ forumId: string }>;
@@ -23,6 +25,7 @@ export default async function ForumPage({ params }: ForumPageProps) {
       eyebrow="Forum"
       title={forum.name}
       description={forum.description ?? undefined}
+      themeStyle={getForumThemeStyle(forum)}
       breadcrumbs={[
         { href: "/forums", label: "Forums" },
         { label: forum.name },
@@ -31,7 +34,7 @@ export default async function ForumPage({ params }: ForumPageProps) {
         <PrimaryLink href={`/forums/${forum.id}/channels/new` as Route}>チャンネル作成</PrimaryLink>
       }
     >
-      <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
+      <div className={ui.page.twoColumnGrid}>
         <SectionCard title="チャンネル">
           {forum.channels.length === 0 ? (
             <EmptyState
@@ -43,11 +46,11 @@ export default async function ForumPage({ params }: ForumPageProps) {
               {forum.channels.map((channel) => (
                 <Link
                   key={channel.id}
-                  className="rounded-2xl border border-slate-200 bg-slate-50 p-4 transition hover:border-slate-400 hover:bg-white"
+                  className={`${ui.surface.listItem} p-4`}
                   href={`/forums/${forum.id}/channels/${channel.id}` as Route}
                 >
                   <p className="font-medium text-slate-950">{channel.name}</p>
-                  <p className="mt-2 text-sm text-slate-600">{channel.description}</p>
+                  <p className={`mt-2 ${ui.text.body}`}>{channel.description}</p>
                   <p className="mt-3 text-xs uppercase tracking-[0.2em] text-slate-500">
                     Posts {channel._count.posts}
                   </p>
@@ -60,7 +63,7 @@ export default async function ForumPage({ params }: ForumPageProps) {
           )}
         </SectionCard>
         <SectionCard title="参加者">
-          <div className="grid gap-3">
+          <div className={ui.list.metadataGrid}>
             {forum.members.map((member) => (
               <div
                 key={member.id}

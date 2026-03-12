@@ -38,15 +38,26 @@ model User {
 }
 
 model Forum {
-  id              String        @id @default(uuid()) @db.Uuid
-  name            String
-  description     String?
-  createdByUserId String        @db.Uuid
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  createdByUser   User          @relation("ForumCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
-  members         ForumMember[]
-  channels        Channel[]
+  id                String        @id @default(uuid()) @db.Uuid
+  name              String
+  description       String?
+  themeName         String        @default("Ocean")
+  themeAccent       String        @default("#0f766e")
+  themeAccentSoft   String        @default("#ccfbf1")
+  themeSurface      String        @default("#ffffff")
+  themeSurfaceMuted String        @default("#f8fafc")
+  themeBorder       String        @default("#cbd5e1")
+  themeText         String        @default("#0f172a")
+  themeTextMuted    String        @default("#475569")
+  themeTextSubtle   String        @default("#94a3b8")
+  themePageFrom     String        @default("#f8fafc")
+  themePageTo       String        @default("#eff6ff")
+  createdByUserId   String        @db.Uuid
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  createdByUser     User          @relation("ForumCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  members           ForumMember[]
+  channels          Channel[]
 }
 
 model ForumMember {

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { createPortal } from "react-dom";
+import { ui } from "@/lib/ui-classes";
 
 type AttachmentLinkProps = Readonly<{
   filename: string;
@@ -58,7 +59,7 @@ export function AttachmentLink({
 
     return (
       <a
-        className="flex items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm no-underline transition hover:border-slate-300 hover:bg-white"
+        className={`flex items-center justify-between gap-4 px-4 py-3 text-sm no-underline ${ui.surface.listItem}`}
         download
         href={storagePath}
         title={mimeType}
@@ -107,11 +108,11 @@ export function AttachmentLink({
       {isOpen && typeof document !== "undefined"
         ? createPortal(
             <div
-              className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/40 p-6"
+              className={ui.modal.overlay}
               onClick={() => setIsOpen(false)}
             >
               <div
-                className="max-h-[90vh] w-full max-w-5xl overflow-hidden rounded-[2rem] border border-slate-700 bg-slate-900 shadow-2xl shadow-black/40"
+                className={`max-h-[90vh] w-full max-w-5xl ${ui.modal.shell}`}
                 onClick={(event) => event.stopPropagation()}
               >
                 <div className="flex items-center justify-between gap-4 border-b border-slate-800 px-6 py-4">
@@ -131,7 +132,7 @@ export function AttachmentLink({
                       ダウンロード
                     </a>
                     <button
-                      className="inline-flex items-center rounded-full border border-slate-600 px-4 py-2 text-sm font-medium text-white transition hover:border-slate-400 hover:bg-slate-800"
+                      className={ui.button.modalGhost}
                       onClick={() => setIsOpen(false)}
                       type="button"
                     >
