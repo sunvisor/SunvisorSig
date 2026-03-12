@@ -15,7 +15,12 @@ export default async function ForumsPage() {
       eyebrow="Forums"
       title="フォーラム一覧"
       description="参加対象のフォーラムと、その中にあるチャンネルを確認できます。"
-      actions={<PrimaryLink href="/forums">一覧を更新</PrimaryLink>}
+      actions={
+        <>
+          <PrimaryLink href={"/forums/new" as Route}>フォーラム作成</PrimaryLink>
+          <PrimaryLink href="/forums">一覧を更新</PrimaryLink>
+        </>
+      }
     >
       {forums.length === 0 ? (
         <EmptyState

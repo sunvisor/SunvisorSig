@@ -32,7 +32,10 @@ export default async function ForumPage({ params }: ForumPageProps) {
         { label: forum.name },
       ]}
       actions={
-        <PrimaryLink href={`/forums/${forum.id}/channels/new` as Route}>チャンネル作成</PrimaryLink>
+        <>
+          <PrimaryLink href={`/forums/${forum.id}/settings` as Route}>フォーラム設定</PrimaryLink>
+          <PrimaryLink href={`/forums/${forum.id}/channels/new` as Route}>チャンネル作成</PrimaryLink>
+        </>
       }
     >
       <div className={ui.page.twoColumnGrid}>

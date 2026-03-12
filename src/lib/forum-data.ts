@@ -1,6 +1,13 @@
 import { cache } from "react";
 import { prisma } from "@/lib/prisma";
 
+export const getActiveUsers = cache(async () => {
+  return prisma.user.findMany({
+    where: { status: "ACTIVE" },
+    orderBy: { createdAt: "asc" },
+  });
+});
+
 export const getForums = cache(async () => {
   return prisma.forum.findMany({
     orderBy: { updatedAt: "desc" },
