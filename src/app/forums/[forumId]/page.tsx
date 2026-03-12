@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ForumShell } from "@/components/forum-shell";
 import { EmptyState, MetadataRow, PrimaryLink, SectionCard } from "@/components/forum-ui";
+import { formatDateTime } from "@/lib/date-time";
 import { getForum } from "@/lib/forum-data";
 
 type ForumPageProps = Readonly<{
@@ -50,6 +51,9 @@ export default async function ForumPage({ params }: ForumPageProps) {
                   <p className="mt-3 text-xs uppercase tracking-[0.2em] text-slate-500">
                     Posts {channel._count.posts}
                   </p>
+                  <p className="mt-2 text-xs uppercase tracking-[0.2em] text-slate-400">
+                    Updated {formatDateTime(channel.updatedAt)}
+                  </p>
                 </Link>
               ))}
             </div>
@@ -72,6 +76,7 @@ export default async function ForumPage({ params }: ForumPageProps) {
           <dl className="mt-4 grid gap-3">
             <MetadataRow label="フォーラムID" value={forum.id} />
             <MetadataRow label="参加人数" value={forum.members.length} />
+            <MetadataRow label="更新日時" value={formatDateTime(forum.updatedAt)} />
           </dl>
         </SectionCard>
       </div>

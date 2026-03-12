@@ -3,10 +3,10 @@ import { prisma } from "@/lib/prisma";
 
 export const getForums = cache(async () => {
   return prisma.forum.findMany({
-    orderBy: { createdAt: "asc" },
+    orderBy: { updatedAt: "desc" },
     include: {
       channels: {
-        orderBy: { createdAt: "asc" },
+        orderBy: { updatedAt: "desc" },
         include: {
           _count: {
             select: {
@@ -35,7 +35,7 @@ export const getForum = cache(async (forumId: string) => {
     where: { id: forumId },
     include: {
       channels: {
-        orderBy: { createdAt: "asc" },
+        orderBy: { updatedAt: "desc" },
         include: {
           _count: {
             select: {
@@ -70,7 +70,7 @@ export const getChannel = cache(async (channelId: string) => {
       },
       createdByUser: true,
       posts: {
-        orderBy: { createdAt: "desc" },
+        orderBy: { updatedAt: "desc" },
         include: {
           authorUser: true,
           attachments: true,

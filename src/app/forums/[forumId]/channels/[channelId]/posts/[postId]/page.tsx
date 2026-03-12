@@ -14,6 +14,7 @@ import { MarkdownContent } from "@/components/markdown-content";
 import { createComment } from "@/lib/comment-creation";
 import { deleteComment } from "@/lib/comment-deletion";
 import { deletePost } from "@/lib/post-deletion";
+import { formatDateTime } from "@/lib/date-time";
 import { getPost } from "@/lib/forum-data";
 
 type PostPageProps = Readonly<{
@@ -74,9 +75,14 @@ export default async function PostPage({ params }: PostPageProps) {
                     className="rounded-2xl border border-slate-200 bg-slate-50 p-5"
                   >
                     <div className="flex items-center justify-between gap-4">
-                      <p className="font-medium text-slate-950">
-                        {comment.authorUser.displayName}
-                      </p>
+                      <div>
+                        <p className="font-medium text-slate-950">
+                          {comment.authorUser.displayName}
+                        </p>
+                        <p className="mt-1 text-xs uppercase tracking-[0.2em] text-slate-400">
+                          {formatDateTime(comment.createdAt)}
+                        </p>
+                      </div>
                       <div className="flex items-center gap-3">
                         <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
                           Files {comment.attachments.length}
@@ -139,6 +145,8 @@ export default async function PostPage({ params }: PostPageProps) {
             <MetadataRow label="投稿者" value={post.authorUser.displayName} />
             <MetadataRow label="添付数" value={post.attachments.length} />
             <MetadataRow label="コメント数" value={post.comments.length} />
+            <MetadataRow label="作成日時" value={formatDateTime(post.createdAt)} />
+            <MetadataRow label="更新日時" value={formatDateTime(post.updatedAt)} />
           </dl>
           <div className="mt-4 grid gap-3">
             {post.attachments.map((attachment) => (

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ForumShell } from "@/components/forum-shell";
 import { EmptyState, MetadataRow, PrimaryLink, SectionCard } from "@/components/forum-ui";
+import { formatDateTime } from "@/lib/date-time";
 import { getChannel } from "@/lib/forum-data";
 
 type ChannelPageProps = Readonly<{
@@ -59,6 +60,9 @@ export default async function ChannelPage({ params }: ChannelPageProps) {
                     <span>Comments {post.comments.length}</span>
                     <span>Files {post.attachments.length}</span>
                   </div>
+                  <p className="mt-2 text-xs uppercase tracking-[0.2em] text-slate-400">
+                    Updated {formatDateTime(post.updatedAt)}
+                  </p>
                 </Link>
               ))}
             </div>
@@ -69,6 +73,7 @@ export default async function ChannelPage({ params }: ChannelPageProps) {
             <MetadataRow label="フォーラム" value={channel.forum.name} />
             <MetadataRow label="投稿数" value={channel.posts.length} />
             <MetadataRow label="作成者" value={channel.createdByUser.displayName} />
+            <MetadataRow label="更新日時" value={formatDateTime(channel.updatedAt)} />
           </dl>
         </SectionCard>
       </div>

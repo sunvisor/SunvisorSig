@@ -2,6 +2,7 @@ import type { Route } from "next";
 import Link from "next/link";
 import { ForumShell } from "@/components/forum-shell";
 import { EmptyState, MetadataRow, PrimaryLink, SectionCard } from "@/components/forum-ui";
+import { formatDateTime } from "@/lib/date-time";
 import { getForums } from "@/lib/forum-data";
 
 export default async function ForumsPage() {
@@ -33,6 +34,9 @@ export default async function ForumsPage() {
                     value={forum.members.find((member) => member.role === "ADMIN")?.user.displayName ?? "-"}
                   />
                 </dl>
+                <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
+                  Updated {formatDateTime(forum.updatedAt)}
+                </p>
                 <div className="grid gap-3 md:grid-cols-2">
                   {forum.channels.map((channel) => (
                     <Link
@@ -44,6 +48,9 @@ export default async function ForumsPage() {
                       <p className="mt-2 text-sm text-slate-600">{channel.description}</p>
                       <p className="mt-3 text-xs uppercase tracking-[0.2em] text-slate-500">
                         Posts {channel._count.posts}
+                      </p>
+                      <p className="mt-2 text-xs uppercase tracking-[0.2em] text-slate-400">
+                        Updated {formatDateTime(channel.updatedAt)}
                       </p>
                     </Link>
                   ))}
