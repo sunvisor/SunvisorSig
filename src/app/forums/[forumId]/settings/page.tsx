@@ -8,6 +8,8 @@ import { getActiveUsers, getForum } from "@/lib/forum-data";
 import { getForumHeroStyle, getForumPageStyle } from "@/lib/forum-theme";
 import {
   addForumMember,
+  cancelInvitation,
+  createInvitation,
   removeForumMember,
   updateForum,
   updateForumMemberRole,
@@ -37,6 +39,7 @@ export default async function ForumSettingsPage({ params }: ForumSettingsPagePro
   const candidateUsers = users.filter(
     (user) => !forum.members.some((member) => member.userId === user.id),
   );
+  const appUrl = process.env.APP_URL?.replace(/\/$/, "") ?? "http://localhost:3000";
 
   return (
     <ForumShell
@@ -174,6 +177,103 @@ export default async function ForumSettingsPage({ params }: ForumSettingsPagePro
           })}
         </div>
       </SectionCard>
+      <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
+        <SectionCard title="招待作成">
+          <form action={createInvitation} className={ui.form.layout}>
+            <input name="forumId" type="hidden" value={forum.id} />
+            <input name="actingUserId" type="hidden" value={actingAdminId} />
+            <div className={ui.form.group}>
+              <label className={ui.text.label} htmlFor="invite-email">
+                メールアドレス
+              </label>
+              <input
+                className={ui.form.input}
+                id="invite-email"
+                name="email"
+                placeholder="new-user@example.com"
+                required
+                type="email"
+              />
+            </div>
+            <div className={ui.form.group}>
+              <label className={ui.text.label} htmlFor="invite-role">
+                ロール
+              </label>
+              <select className={ui.form.select} defaultValue="PARTICIPANT" id="invite-role" name="role">
+                <option value="PARTICIPANT">PARTICIPANT</option>
+                <option value="ADMIN">ADMIN</option>
+              </select>
+            </div>
+            <p className={ui.text.body}>
+              既存ユーザーには招待できません。既存アカウントは参加者管理から追加します。
+            </p>
+            <div className={ui.form.actions}>
+              <button className={ui.button.primary} type="submit">
+                招待を作成
+              </button>
+            </div>
+          </form>
+        </SectionCard>
+        <SectionCard title="招待一覧">
+          {forum.invitations.length === 0 ? (
+            <p className={ui.text.body}>
+              まだ招待はありません。
+            </p>
+          ) : (
+            <div className="grid gap-4">
+              {forum.invitations.map((invitation) => {
+                const activationUrl = `${appUrl}/activate?token=${invitation.token}`;
+                const canCancel = invitation.status === "PENDING";
+
+                return (
+                  <div key={invitation.id} className={`${ui.surface.mutedCard} grid gap-3 p-5`}>
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <p className="theme-text text-base font-medium">{invitation.email}</p>
+                        <div className="mt-2 flex flex-wrap gap-4">
+                          <span className={ui.text.meta}>Role {invitation.role}</span>
+                          <span className={ui.text.meta}>Status {invitation.status}</span>
+                          <span className={ui.text.subtleMeta}>
+                            Expires {formatDateTime(invitation.expiresAt)}
+                          </span>
+                        </div>
+                      </div>
+                      {canCancel ? (
+                        <form action={cancelInvitation}>
+                          <input name="forumId" type="hidden" value={forum.id} />
+                          <input name="actingUserId" type="hidden" value={actingAdminId} />
+                          <input name="invitationId" type="hidden" value={invitation.id} />
+                          <ConfirmSubmitButton
+                            className={ui.button.dangerCompact}
+                            description="取り消した招待リンクは無効になります。"
+                            message="この招待を取り消しますか？"
+                          >
+                            招待を取消
+                          </ConfirmSubmitButton>
+                        </form>
+                      ) : null}
+                    </div>
+                    <div className={`${ui.surface.card} p-4`}>
+                      <p className={ui.text.meta}>Activation URL</p>
+                      <p className="theme-text mt-2 break-all text-sm leading-6">
+                        {activationUrl}
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-4">
+                      <span className={ui.text.subtleMeta}>
+                        Created {formatDateTime(invitation.createdAt)}
+                      </span>
+                      <span className={ui.text.subtleMeta}>
+                        By {invitation.createdByUser.displayName}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </SectionCard>
+      </div>
     </ForumShell>
   );
 }

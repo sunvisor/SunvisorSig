@@ -1,8 +1,9 @@
+import { randomBytes } from "node:crypto";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getForumThemePreset } from "@/lib/forum-theme";
-import type { ForumRole } from "@prisma/client";
+import type { ForumRole, InvitationStatus } from "@prisma/client";
 
 function normalizeDescription(formData: FormData) {
   const value = String(formData.get("description") ?? "").trim();
@@ -31,6 +32,10 @@ function revalidateForumPaths(forumId: string) {
   revalidatePath("/forums");
   revalidatePath(`/forums/${forumId}`);
   revalidatePath(`/forums/${forumId}/settings`);
+}
+
+function normalizeEmail(value: FormDataEntryValue | null) {
+  return String(value ?? "").trim().toLowerCase();
 }
 
 export async function createForum(formData: FormData) {
@@ -246,6 +251,93 @@ export async function removeForumMember(formData: FormData) {
         forumId,
         userId,
       },
+    },
+  });
+
+  revalidateForumPaths(forumId);
+}
+
+export async function createInvitation(formData: FormData) {
+  "use server";
+
+  const forumId = String(formData.get("forumId") ?? "");
+  const actingUserId = String(formData.get("actingUserId") ?? "");
+  const email = normalizeEmail(formData.get("email"));
+  const role = String(formData.get("role") ?? "PARTICIPANT") as ForumRole;
+
+  if (!forumId || !actingUserId || !email) {
+    throw new Error("必須項目が不足しています。");
+  }
+
+  await assertAdminMembership(forumId, actingUserId);
+
+  const existingUser = await prisma.user.findUnique({
+    where: { email },
+  });
+
+  if (existingUser) {
+    throw new Error("既存ユーザーです。参加者管理から追加してください。");
+  }
+
+  const existingInvitation = await prisma.invitation.findFirst({
+    where: {
+      forumId,
+      email,
+      status: {
+        in: ["PENDING", "ACCEPTED"] satisfies InvitationStatus[],
+      },
+    },
+  });
+
+  if (existingInvitation) {
+    throw new Error("このメールアドレスには、すでに有効な招待があります。");
+  }
+
+  await prisma.invitation.create({
+    data: {
+      forumId,
+      email,
+      role,
+      token: randomBytes(24).toString("hex"),
+      status: "PENDING",
+      expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7),
+      createdByUserId: actingUserId,
+    },
+  });
+
+  revalidateForumPaths(forumId);
+}
+
+export async function cancelInvitation(formData: FormData) {
+  "use server";
+
+  const forumId = String(formData.get("forumId") ?? "");
+  const actingUserId = String(formData.get("actingUserId") ?? "");
+  const invitationId = String(formData.get("invitationId") ?? "");
+
+  if (!forumId || !actingUserId || !invitationId) {
+    throw new Error("必須項目が不足しています。");
+  }
+
+  await assertAdminMembership(forumId, actingUserId);
+
+  const invitation = await prisma.invitation.findUnique({
+    where: { id: invitationId },
+  });
+
+  if (!invitation || invitation.forumId !== forumId) {
+    throw new Error("対象の招待が見つかりません。");
+  }
+
+  if (invitation.status !== "PENDING") {
+    throw new Error("未処理の招待のみ取り消せます。");
+  }
+
+  await prisma.invitation.update({
+    where: { id: invitationId },
+    data: {
+      status: "CANCELED",
+      canceledAt: new Date(),
     },
   });
 

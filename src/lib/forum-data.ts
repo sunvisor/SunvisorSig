@@ -57,6 +57,12 @@ export const getForum = cache(async (forumId: string) => {
         },
         orderBy: { joinedAt: "asc" },
       },
+      invitations: {
+        include: {
+          createdByUser: true,
+        },
+        orderBy: { createdAt: "desc" },
+      },
     },
   });
 });
