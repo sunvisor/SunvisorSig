@@ -1,5 +1,6 @@
 import type { Route } from "next";
 import { notFound } from "next/navigation";
+import { AttachmentLink } from "@/components/attachment-link";
 import { CommentComposer } from "@/components/comment-composer";
 import { ForumShell } from "@/components/forum-shell";
 import {
@@ -84,14 +85,16 @@ export default async function PostPage({ params }: PostPageProps) {
                       />
                     </div>
                     {comment.attachments.length > 0 ? (
-                      <div className="mt-4 flex flex-wrap gap-2">
+                      <div className="mt-4 grid gap-3">
                         {comment.attachments.map((attachment) => (
-                          <span
+                          <AttachmentLink
+                            compact
                             key={attachment.id}
-                            className="rounded-full border border-slate-300 bg-white px-3 py-1 text-xs text-slate-700"
-                          >
-                            {attachment.originalFilename}
-                          </span>
+                            filename={attachment.originalFilename}
+                            mimeType={attachment.mimeType}
+                            sizeBytes={attachment.sizeBytes}
+                            storagePath={attachment.storagePath}
+                          />
                         ))}
                       </div>
                     ) : null}
@@ -119,14 +122,15 @@ export default async function PostPage({ params }: PostPageProps) {
             <MetadataRow label="添付数" value={post.attachments.length} />
             <MetadataRow label="コメント数" value={post.comments.length} />
           </dl>
-          <div className="mt-4 flex flex-wrap gap-2">
+          <div className="mt-4 grid gap-3">
             {post.attachments.map((attachment) => (
-              <span
+              <AttachmentLink
                 key={attachment.id}
-                className="rounded-full border border-slate-300 bg-slate-50 px-3 py-1 text-xs text-slate-700"
-              >
-                {attachment.originalFilename}
-              </span>
+                filename={attachment.originalFilename}
+                mimeType={attachment.mimeType}
+                sizeBytes={attachment.sizeBytes}
+                storagePath={attachment.storagePath}
+              />
             ))}
           </div>
         </SectionCard>

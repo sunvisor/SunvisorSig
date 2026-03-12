@@ -1,3 +1,4 @@
+import { AttachmentLink } from "@/components/attachment-link";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -5,26 +6,13 @@ type AttachmentRef = {
   originalFilename: string;
   storagePath: string;
   mimeType: string;
+  sizeBytes?: number;
 };
 
 type MarkdownContentProps = Readonly<{
   value: string;
   attachments?: AttachmentRef[];
 }>;
-
-function AttachmentChip({
-  filename,
-  mimeType,
-}: Readonly<{ filename: string; mimeType: string }>) {
-  return (
-    <span
-      className="inline-flex items-center rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-sm font-medium text-sky-900"
-      title={mimeType}
-    >
-      {filename}
-    </span>
-  );
-}
 
 function MissingAttachmentChip({ filename }: Readonly<{ filename: string }>) {
   return (
@@ -57,9 +45,12 @@ export function MarkdownContent({
               }
 
               return (
-                <AttachmentChip
+                <AttachmentLink
+                  compact
                   filename={attachment.originalFilename}
                   mimeType={attachment.mimeType}
+                  sizeBytes={attachment.sizeBytes}
+                  storagePath={attachment.storagePath}
                 />
               );
             }
