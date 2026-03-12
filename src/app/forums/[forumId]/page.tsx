@@ -5,7 +5,7 @@ import { ForumShell } from "@/components/forum-shell";
 import { EmptyState, MetadataRow, PrimaryLink, SectionCard } from "@/components/forum-ui";
 import { formatDateTime } from "@/lib/date-time";
 import { getForum } from "@/lib/forum-data";
-import { getForumThemeStyle } from "@/lib/forum-theme";
+import { getForumHeroStyle, getForumPageStyle } from "@/lib/forum-theme";
 import { ui } from "@/lib/ui-classes";
 
 type ForumPageProps = Readonly<{
@@ -25,7 +25,8 @@ export default async function ForumPage({ params }: ForumPageProps) {
       eyebrow="Forum"
       title={forum.name}
       description={forum.description ?? undefined}
-      themeStyle={getForumThemeStyle(forum)}
+      themeStyle={getForumPageStyle(forum)}
+      heroStyle={getForumHeroStyle(forum)}
       breadcrumbs={[
         { href: "/forums", label: "Forums" },
         { label: forum.name },
@@ -49,12 +50,12 @@ export default async function ForumPage({ params }: ForumPageProps) {
                   className={`${ui.surface.listItem} p-4`}
                   href={`/forums/${forum.id}/channels/${channel.id}` as Route}
                 >
-                  <p className="font-medium text-slate-950">{channel.name}</p>
+                  <p className="theme-text font-medium">{channel.name}</p>
                   <p className={`mt-2 ${ui.text.body}`}>{channel.description}</p>
-                  <p className="mt-3 text-xs uppercase tracking-[0.2em] text-slate-500">
+                  <p className={`mt-3 ${ui.text.meta}`}>
                     Posts {channel._count.posts}
                   </p>
-                  <p className="mt-2 text-xs uppercase tracking-[0.2em] text-slate-400">
+                  <p className={`mt-2 ${ui.text.subtleMeta}`}>
                     Updated {formatDateTime(channel.updatedAt)}
                   </p>
                 </Link>
@@ -67,10 +68,10 @@ export default async function ForumPage({ params }: ForumPageProps) {
             {forum.members.map((member) => (
               <div
                 key={member.id}
-                className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+                className={`${ui.surface.mutedCard} p-4`}
               >
-                <p className="font-medium text-slate-950">{member.user.displayName}</p>
-                <p className="mt-1 text-sm uppercase tracking-[0.2em] text-slate-500">
+                <p className="theme-text font-medium">{member.user.displayName}</p>
+                <p className={`mt-1 ${ui.text.meta}`}>
                   {member.role}
                 </p>
               </div>

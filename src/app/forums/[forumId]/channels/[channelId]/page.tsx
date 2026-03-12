@@ -5,7 +5,7 @@ import { ForumShell } from "@/components/forum-shell";
 import { EmptyState, MetadataRow, PrimaryLink, SectionCard } from "@/components/forum-ui";
 import { formatDateTime } from "@/lib/date-time";
 import { getChannel } from "@/lib/forum-data";
-import { getForumThemeStyle } from "@/lib/forum-theme";
+import { getForumHeroStyle, getForumPageStyle } from "@/lib/forum-theme";
 import { ui } from "@/lib/ui-classes";
 
 type ChannelPageProps = Readonly<{
@@ -25,7 +25,8 @@ export default async function ChannelPage({ params }: ChannelPageProps) {
       eyebrow="Channel"
       title={channel.name}
       description={channel.description ?? undefined}
-      themeStyle={getForumThemeStyle(channel.forum)}
+      themeStyle={getForumPageStyle(channel.forum)}
+      heroStyle={getForumHeroStyle(channel.forum)}
       breadcrumbs={[
         { href: "/forums", label: "Forums" },
         { href: `/forums/${channel.forum.id}`, label: channel.forum.name },
@@ -56,14 +57,14 @@ export default async function ChannelPage({ params }: ChannelPageProps) {
                     `/forums/${channel.forum.id}/channels/${channel.id}/posts/${post.id}` as Route
                   }
                 >
-                  <p className="font-medium text-slate-950">{post.title}</p>
+                  <p className="theme-text font-medium">{post.title}</p>
                   <p className={`mt-2 ${ui.text.body}`}>{post.bodyMarkdown}</p>
-                  <div className="mt-4 flex flex-wrap gap-4 text-xs uppercase tracking-[0.2em] text-slate-500">
+                  <div className={`mt-4 flex flex-wrap gap-4 ${ui.text.meta}`}>
                     <span>Author {post.authorUser.displayName}</span>
                     <span>Comments {post.comments.length}</span>
                     <span>Files {post.attachments.length}</span>
                   </div>
-                  <p className="mt-2 text-xs uppercase tracking-[0.2em] text-slate-400">
+                  <p className={`mt-2 ${ui.text.subtleMeta}`}>
                     Updated {formatDateTime(post.updatedAt)}
                   </p>
                 </Link>

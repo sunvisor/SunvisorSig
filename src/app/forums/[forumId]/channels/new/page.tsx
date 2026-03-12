@@ -5,7 +5,7 @@ import { PrimaryLink, SectionCard } from "@/components/forum-ui";
 import { SubmitButton } from "@/components/submit-button";
 import { createChannel } from "@/lib/channel-creation";
 import { getForum } from "@/lib/forum-data";
-import { getForumThemeStyle } from "@/lib/forum-theme";
+import { getForumHeroStyle, getForumPageStyle } from "@/lib/forum-theme";
 import { ui } from "@/lib/ui-classes";
 
 type NewChannelPageProps = Readonly<{
@@ -25,7 +25,8 @@ export default async function NewChannelPage({ params }: NewChannelPageProps) {
       eyebrow="Channel"
       title="チャンネル作成"
       description="フォーラム内に新しいチャンネルを追加します。"
-      themeStyle={getForumThemeStyle(forum)}
+      themeStyle={getForumPageStyle(forum)}
+      heroStyle={getForumHeroStyle(forum)}
       breadcrumbs={[
         { href: "/forums", label: "Forums" },
         { href: `/forums/${forum.id}`, label: forum.name },

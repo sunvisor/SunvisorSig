@@ -4,6 +4,7 @@ import { ForumShell } from "@/components/forum-shell";
 import { EmptyState, MetadataRow, PrimaryLink, SectionCard } from "@/components/forum-ui";
 import { formatDateTime } from "@/lib/date-time";
 import { getForums } from "@/lib/forum-data";
+import { getForumCardStyle } from "@/lib/forum-theme";
 import { ui } from "@/lib/ui-classes";
 
 export default async function ForumsPage() {
@@ -24,8 +25,15 @@ export default async function ForumsPage() {
       ) : (
         <div className={ui.page.sectionGrid}>
           {forums.map((forum) => (
-            <SectionCard key={forum.id} title={forum.name}>
+            <SectionCard key={forum.id} style={getForumCardStyle(forum)} title={forum.name}>
               <div className="flex flex-col gap-5">
+                <div className="flex items-center gap-3">
+                  <span
+                    className="inline-flex h-3 w-3 rounded-full"
+                    style={{ backgroundColor: forum.themeAccent }}
+                  />
+                  <span className={ui.text.meta}>{forum.themeName}</span>
+                </div>
                 <p className={ui.text.body}>{forum.description}</p>
                 <dl className={ui.list.metadataGrid3}>
                   <MetadataRow label="チャンネル数" value={forum._count.channels} />
@@ -35,7 +43,7 @@ export default async function ForumsPage() {
                     value={forum.members.find((member) => member.role === "ADMIN")?.user.displayName ?? "-"}
                   />
                 </dl>
-                <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
+                <p className={ui.text.meta}>
                   Updated {formatDateTime(forum.updatedAt)}
                 </p>
                 <div className={ui.list.responsiveCards}>
@@ -45,12 +53,12 @@ export default async function ForumsPage() {
                       className={`${ui.surface.listItem} p-4`}
                       href={`/forums/${forum.id}/channels/${channel.id}` as Route}
                     >
-                      <p className="font-medium text-slate-950">{channel.name}</p>
+                      <p className="theme-text font-medium">{channel.name}</p>
                       <p className={`mt-2 ${ui.text.body}`}>{channel.description}</p>
-                      <p className="mt-3 text-xs uppercase tracking-[0.2em] text-slate-500">
+                      <p className={`mt-3 ${ui.text.meta}`}>
                         Posts {channel._count.posts}
                       </p>
-                      <p className="mt-2 text-xs uppercase tracking-[0.2em] text-slate-400">
+                      <p className={`mt-2 ${ui.text.subtleMeta}`}>
                         Updated {formatDateTime(channel.updatedAt)}
                       </p>
                     </Link>

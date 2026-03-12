@@ -12,6 +12,7 @@ type ForumShellProps = Readonly<{
   }>;
   actions?: React.ReactNode;
   themeStyle?: React.CSSProperties;
+  heroStyle?: React.CSSProperties;
   children: React.ReactNode;
 }>;
 
@@ -22,22 +23,23 @@ export function ForumShell({
   breadcrumbs = [],
   actions,
   themeStyle,
+  heroStyle,
   children,
 }: ForumShellProps) {
   return (
     <main className={ui.page.shell} style={themeStyle}>
       <div className={ui.page.container}>
-        <header className={ui.surface.hero}>
+        <header className={ui.surface.hero} style={heroStyle}>
           {breadcrumbs.length > 0 ? (
-            <nav className="mb-5 flex flex-wrap items-center gap-2 text-sm text-slate-500">
+            <nav className="theme-text-muted mb-5 flex flex-wrap items-center gap-2 text-sm">
               {breadcrumbs.map((item, index) => (
                 <span key={`${item.label}-${index}`} className="flex items-center gap-2">
                   {item.href ? (
-                    <Link className="transition hover:text-slate-900" href={item.href}>
+                    <Link className="transition hover:opacity-80" href={item.href}>
                       {item.label}
                     </Link>
                   ) : (
-                    <span className="text-slate-900">{item.label}</span>
+                    <span className="theme-text">{item.label}</span>
                   )}
                   {index < breadcrumbs.length - 1 ? <span>/</span> : null}
                 </span>

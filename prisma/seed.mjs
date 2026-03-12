@@ -36,7 +36,7 @@ async function main() {
     }),
   ]);
 
-  const forum = await prisma.forum.create({
+  const acmeForum = await prisma.forum.create({
     data: {
       name: "Acme 導入フォーラム",
       description: "Acme 向けの導入・運用相談フォーラム",
@@ -55,18 +55,61 @@ async function main() {
     },
   });
 
+  const globexForum = await prisma.forum.create({
+    data: {
+      name: "Globex 運用フォーラム",
+      description: "Globex 向けの定例運用と障害対応フォーラム",
+      themeName: "Ocean",
+      themeAccent: "#0369a1",
+      themeAccentSoft: "#dbeafe",
+      themeSurface: "#f8fbff",
+      themeSurfaceMuted: "#eff6ff",
+      themeBorder: "#93c5fd",
+      themeText: "#0f172a",
+      themeTextMuted: "#1d4ed8",
+      themeTextSubtle: "#60a5fa",
+      themePageFrom: "#f8fbff",
+      themePageTo: "#dbeafe",
+      createdByUserId: admin.id,
+    },
+  });
+
+  const initechForum = await prisma.forum.create({
+    data: {
+      name: "Initech 企画フォーラム",
+      description: "Initech 向けの要件整理と企画相談フォーラム",
+      themeName: "Forest",
+      themeAccent: "#166534",
+      themeAccentSoft: "#dcfce7",
+      themeSurface: "#f7fff9",
+      themeSurfaceMuted: "#f0fdf4",
+      themeBorder: "#86efac",
+      themeText: "#14532d",
+      themeTextMuted: "#166534",
+      themeTextSubtle: "#4ade80",
+      themePageFrom: "#f7fee7",
+      themePageTo: "#dcfce7",
+      createdByUserId: admin.id,
+    },
+  });
+
   await prisma.forumMember.createMany({
     data: [
-      { forumId: forum.id, userId: admin.id, role: ForumRole.ADMIN },
-      { forumId: forum.id, userId: customerA.id, role: ForumRole.PARTICIPANT },
-      { forumId: forum.id, userId: customerB.id, role: ForumRole.PARTICIPANT },
+      { forumId: acmeForum.id, userId: admin.id, role: ForumRole.ADMIN },
+      { forumId: acmeForum.id, userId: customerA.id, role: ForumRole.PARTICIPANT },
+      { forumId: acmeForum.id, userId: customerB.id, role: ForumRole.PARTICIPANT },
+      { forumId: globexForum.id, userId: admin.id, role: ForumRole.ADMIN },
+      { forumId: globexForum.id, userId: customerB.id, role: ForumRole.PARTICIPANT },
+      { forumId: initechForum.id, userId: admin.id, role: ForumRole.ADMIN },
+      { forumId: initechForum.id, userId: customerA.id, role: ForumRole.PARTICIPANT },
     ],
   });
 
-  const [announcements, qa] = await Promise.all([
+  const [announcements, qa, globexIncidentChannel, initechPlanningChannel] =
+    await Promise.all([
     prisma.channel.create({
       data: {
-        forumId: forum.id,
+        forumId: acmeForum.id,
         name: "お知らせ",
         description: "運用連絡や告知用のチャンネル",
         createdByUserId: admin.id,
@@ -74,13 +117,29 @@ async function main() {
     }),
     prisma.channel.create({
       data: {
-        forumId: forum.id,
+        forumId: acmeForum.id,
         name: "質疑応答",
         description: "質問と回答をやり取りするチャンネル",
         createdByUserId: admin.id,
       },
     }),
-  ]);
+    prisma.channel.create({
+      data: {
+        forumId: globexForum.id,
+        name: "障害対応",
+        description: "障害報告と一次対応の共有",
+        createdByUserId: admin.id,
+      },
+    }),
+    prisma.channel.create({
+      data: {
+        forumId: initechForum.id,
+        name: "企画相談",
+        description: "新機能案と要件整理の相談",
+        createdByUserId: admin.id,
+      },
+    }),
+    ]);
 
   const welcomePost = await prisma.post.create({
     data: {
@@ -150,13 +209,33 @@ async function main() {
     },
   });
 
+  await prisma.post.create({
+    data: {
+      channelId: globexIncidentChannel.id,
+      authorUserId: customerB.id,
+      title: "夜間バッチの監視について",
+      bodyMarkdown:
+        "夜間バッチの失敗通知をこのチャンネルで確認できるようにしたいです。",
+    },
+  });
+
+  await prisma.post.create({
+    data: {
+      channelId: initechPlanningChannel.id,
+      authorUserId: customerA.id,
+      title: "次期リリースの要望整理",
+      bodyMarkdown:
+        "企画候補をここで整理して、優先度を決めていきたいです。",
+    },
+  });
+
   console.log(
     JSON.stringify(
       {
         users: 3,
-        forums: 1,
-        channels: 2,
-        posts: 2,
+        forums: 3,
+        channels: 4,
+        posts: 4,
         comments: 2,
       },
       null,

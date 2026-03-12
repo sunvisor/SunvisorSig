@@ -4,7 +4,7 @@ import { ForumShell } from "@/components/forum-shell";
 import { PrimaryLink, SectionCard } from "@/components/forum-ui";
 import { SubmitButton } from "@/components/submit-button";
 import { getChannel } from "@/lib/forum-data";
-import { getForumThemeStyle } from "@/lib/forum-theme";
+import { getForumHeroStyle, getForumPageStyle } from "@/lib/forum-theme";
 import { createPost } from "@/lib/post-creation";
 import { ui } from "@/lib/ui-classes";
 
@@ -25,7 +25,8 @@ export default async function NewPostPage({ params }: NewPostPageProps) {
       eyebrow="Compose"
       title="投稿作成"
       description="Markdown 本文と添付ファイルを使って新しい投稿を作成します。"
-      themeStyle={getForumThemeStyle(channel.forum)}
+      themeStyle={getForumPageStyle(channel.forum)}
+      heroStyle={getForumHeroStyle(channel.forum)}
       breadcrumbs={[
         { href: "/forums", label: "Forums" },
         { href: `/forums/${channel.forum.id}`, label: channel.forum.name },
@@ -89,7 +90,7 @@ export default async function NewPostPage({ params }: NewPostPageProps) {
               }
               required
             />
-            <p className="text-sm leading-6 text-[color:var(--theme-text-muted)]">
+            <p className="theme-text-muted text-sm leading-6">
               添付ファイル参照は <code>[資料](attachment:file.pdf)</code> 形式です。同名ファイルは
               自動で <code>(2)</code>, <code>(3)</code> が付きます。
             </p>

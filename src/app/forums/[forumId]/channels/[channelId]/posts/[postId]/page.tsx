@@ -16,7 +16,7 @@ import { deleteComment } from "@/lib/comment-deletion";
 import { deletePost } from "@/lib/post-deletion";
 import { formatDateTime } from "@/lib/date-time";
 import { getPost } from "@/lib/forum-data";
-import { getForumThemeStyle } from "@/lib/forum-theme";
+import { getForumHeroStyle, getForumPageStyle } from "@/lib/forum-theme";
 
 type PostPageProps = Readonly<{
   params: Promise<{ forumId: string; channelId: string; postId: string }>;
@@ -39,7 +39,8 @@ export default async function PostPage({ params }: PostPageProps) {
       eyebrow="Post"
       title={post.title}
       description={`${post.authorUser.displayName} による投稿`}
-      themeStyle={getForumThemeStyle(post.channel.forum)}
+      themeStyle={getForumPageStyle(post.channel.forum)}
+      heroStyle={getForumHeroStyle(post.channel.forum)}
       breadcrumbs={[
         { href: "/forums", label: "Forums" },
         { href: `/forums/${post.channel.forum.id}`, label: post.channel.forum.name },
