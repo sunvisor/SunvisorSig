@@ -1,0 +1,21 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: light;
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  --card: #ffffff;
+  --border: #cbd5e1;
+}
+
+body {
+  background:
+    radial-gradient(circle at top, rgba(59, 130, 246, 0.12), transparent 42%),
+    linear-gradient(180deg, #f8fafc 0%, #eff6ff 100%);
+  color: var(--foreground);
+  min-height: 100vh;
+}
+
+a {
+  color: inherit;
+}
