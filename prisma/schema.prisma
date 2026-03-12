@@ -18,23 +18,31 @@ enum ForumRole {
   PARTICIPANT
 }
 
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+  CANCELED
+}
+
 enum DeletedAttachmentOwnerType {
   POST
   COMMENT
 }
 
 model User {
-  id               String        @id @default(uuid()) @db.Uuid
-  displayName      String
-  email            String?       @unique
-  status           UserStatus    @default(INVITED)
-  createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
-  createdForums    Forum[]       @relation("ForumCreator")
-  forumMemberships ForumMember[]
-  createdChannels  Channel[]     @relation("ChannelCreator")
-  posts            Post[]
-  comments         Comment[]
+  id                 String        @id @default(uuid()) @db.Uuid
+  displayName        String
+  email              String?       @unique
+  status             UserStatus    @default(INVITED)
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  createdForums      Forum[]       @relation("ForumCreator")
+  createdInvitations Invitation[]  @relation("InvitationCreator")
+  forumMemberships   ForumMember[]
+  createdChannels    Channel[]     @relation("ChannelCreator")
+  posts              Post[]
+  comments           Comment[]
 }
 
 model Forum {
@@ -58,6 +66,26 @@ model Forum {
   createdByUser     User          @relation("ForumCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
   members           ForumMember[]
   channels          Channel[]
+  invitations       Invitation[]
+}
+
+model Invitation {
+  id              String           @id @default(uuid()) @db.Uuid
+  forumId         String           @db.Uuid
+  email           String
+  role            ForumRole        @default(PARTICIPANT)
+  token           String           @unique
+  status          InvitationStatus @default(PENDING)
+  expiresAt       DateTime
+  acceptedAt      DateTime?
+  canceledAt      DateTime?
+  createdByUserId String           @db.Uuid
+  createdAt       DateTime         @default(now())
+  forum           Forum            @relation(fields: [forumId], references: [id], onDelete: Cascade)
+  createdByUser   User             @relation("InvitationCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+
+  @@index([forumId, status])
+  @@index([email])
 }
 
 model ForumMember {
