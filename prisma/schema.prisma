@@ -6,3 +6,158 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+enum UserStatus {
+  INVITED
+  ACTIVE
+  SUSPENDED
+}
+
+enum ForumRole {
+  ADMIN
+  PARTICIPANT
+}
+
+enum DeletedAttachmentOwnerType {
+  POST
+  COMMENT
+}
+
+model User {
+  id               String        @id @default(uuid()) @db.Uuid
+  displayName      String
+  email            String?       @unique
+  status           UserStatus    @default(INVITED)
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  createdForums    Forum[]       @relation("ForumCreator")
+  forumMemberships ForumMember[]
+  createdChannels  Channel[]     @relation("ChannelCreator")
+  posts            Post[]
+  comments         Comment[]
+}
+
+model Forum {
+  id              String        @id @default(uuid()) @db.Uuid
+  name            String
+  description     String?
+  createdByUserId String        @db.Uuid
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  createdByUser   User          @relation("ForumCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  members         ForumMember[]
+  channels        Channel[]
+}
+
+model ForumMember {
+  id       String    @id @default(uuid()) @db.Uuid
+  forumId  String    @db.Uuid
+  userId   String    @db.Uuid
+  role     ForumRole @default(PARTICIPANT)
+  joinedAt DateTime  @default(now())
+  forum    Forum     @relation(fields: [forumId], references: [id], onDelete: Cascade)
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([forumId, userId])
+}
+
+model Channel {
+  id              String   @id @default(uuid()) @db.Uuid
+  forumId         String   @db.Uuid
+  name            String
+  description     String?
+  createdByUserId String   @db.Uuid
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  forum           Forum    @relation(fields: [forumId], references: [id], onDelete: Cascade)
+  createdByUser   User     @relation("ChannelCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  posts           Post[]
+
+  @@unique([forumId, name])
+}
+
+model Post {
+  id           String           @id @default(uuid()) @db.Uuid
+  channelId    String           @db.Uuid
+  authorUserId String           @db.Uuid
+  title        String
+  bodyMarkdown String           @db.Text
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  channel      Channel          @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  authorUser   User             @relation(fields: [authorUserId], references: [id], onDelete: Restrict)
+  attachments  PostAttachment[]
+  comments     Comment[]
+}
+
+model PostAttachment {
+  id               String   @id @default(uuid()) @db.Uuid
+  postId           String   @db.Uuid
+  storagePath      String
+  originalFilename String
+  mimeType         String
+  sizeBytes        Int
+  createdAt        DateTime @default(now())
+  post             Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+}
+
+model Comment {
+  id           String              @id @default(uuid()) @db.Uuid
+  postId       String              @db.Uuid
+  authorUserId String              @db.Uuid
+  bodyMarkdown String              @db.Text
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+  post         Post                @relation(fields: [postId], references: [id], onDelete: Cascade)
+  authorUser   User                @relation(fields: [authorUserId], references: [id], onDelete: Restrict)
+  attachments  CommentAttachment[]
+}
+
+model CommentAttachment {
+  id               String   @id @default(uuid()) @db.Uuid
+  commentId        String   @db.Uuid
+  storagePath      String
+  originalFilename String
+  mimeType         String
+  sizeBytes        Int
+  createdAt        DateTime @default(now())
+  comment          Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+}
+
+model DeletedPost {
+  id              String   @id @default(uuid()) @db.Uuid
+  originalPostId  String   @unique @db.Uuid
+  channelId       String   @db.Uuid
+  authorUserId    String   @db.Uuid
+  title           String
+  bodyMarkdown    String   @db.Text
+  deletedByUserId String?  @db.Uuid
+  deletedAt       DateTime @default(now())
+  purgeAfter      DateTime
+  createdAt       DateTime
+}
+
+model DeletedComment {
+  id                String   @id @default(uuid()) @db.Uuid
+  originalCommentId String   @unique @db.Uuid
+  postId            String   @db.Uuid
+  authorUserId      String   @db.Uuid
+  bodyMarkdown      String   @db.Text
+  deletedByUserId   String?  @db.Uuid
+  deletedAt         DateTime @default(now())
+  purgeAfter        DateTime
+  createdAt         DateTime
+}
+
+model DeletedAttachment {
+  id                   String                     @id @default(uuid()) @db.Uuid
+  originalAttachmentId String                     @unique @db.Uuid
+  ownerType            DeletedAttachmentOwnerType
+  ownerId              String                     @db.Uuid
+  storagePath          String
+  originalFilename     String
+  mimeType             String
+  sizeBytes            Int
+  deletedAt            DateTime                   @default(now())
+  purgeAfter           DateTime
+}
