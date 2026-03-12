@@ -99,6 +99,8 @@ model PostAttachment {
   sizeBytes        Int
   createdAt        DateTime @default(now())
   post             Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, originalFilename])
 }
 
 model Comment {
@@ -122,6 +124,8 @@ model CommentAttachment {
   sizeBytes        Int
   createdAt        DateTime @default(now())
   comment          Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  @@unique([commentId, originalFilename])
 }
 
 model DeletedPost {
