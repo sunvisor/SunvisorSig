@@ -3,11 +3,11 @@ import { notFound } from "next/navigation";
 import { ForumShell } from "@/components/forum-shell";
 import {
   EmptyState,
-  MarkdownBlock,
   MetadataRow,
   PrimaryLink,
   SectionCard,
 } from "@/components/forum-ui";
+import { MarkdownContent } from "@/components/markdown-content";
 import { getPost } from "@/lib/forum-data";
 
 type PostPageProps = Readonly<{
@@ -49,7 +49,10 @@ export default async function PostPage({ params }: PostPageProps) {
       <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
         <div className="grid gap-6">
           <SectionCard title="本文">
-            <MarkdownBlock value={post.bodyMarkdown} />
+            <MarkdownContent
+              attachments={post.attachments}
+              value={post.bodyMarkdown}
+            />
           </SectionCard>
           <SectionCard title="コメント">
             {post.comments.length === 0 ? (
@@ -73,7 +76,10 @@ export default async function PostPage({ params }: PostPageProps) {
                       </p>
                     </div>
                     <div className="mt-4">
-                      <MarkdownBlock value={comment.bodyMarkdown} />
+                      <MarkdownContent
+                        attachments={comment.attachments}
+                        value={comment.bodyMarkdown}
+                      />
                     </div>
                     {comment.attachments.length > 0 ? (
                       <div className="mt-4 flex flex-wrap gap-2">
