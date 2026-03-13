@@ -15,6 +15,7 @@
     "db:seed": "node prisma/seed.mjs",
     "db:test-deletion": "tsx prisma/test-deletion.ts",
     "db:test-notifications": "tsx prisma/test-notifications.ts",
+    "db:test-activation": "tsx prisma/test-activation.ts",
     "db:studio": "prisma studio",
     "postinstall": "prisma generate"
   },

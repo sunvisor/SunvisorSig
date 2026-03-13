@@ -37,11 +37,26 @@ function getActivationErrorMessage(invitation: {
 
 export async function activateInvitation(formData: FormData) {
   "use server";
+  const result = await activateInvitationRecord({
+    token: String(formData.get("token") ?? "").trim(),
+    displayName: String(formData.get("displayName") ?? "").trim(),
+    password: String(formData.get("password") ?? ""),
+    passwordConfirmation: String(formData.get("passwordConfirmation") ?? ""),
+  });
 
-  const token = String(formData.get("token") ?? "").trim();
-  const displayName = String(formData.get("displayName") ?? "").trim();
-  const password = String(formData.get("password") ?? "");
-  const passwordConfirmation = String(formData.get("passwordConfirmation") ?? "");
+  revalidatePath("/forums");
+  revalidatePath(`/forums/${result.forumId}`);
+  revalidatePath(`/forums/${result.forumId}/settings`);
+  redirect(`/activate/success?forumId=${result.forumId}` as Route);
+}
+
+export async function activateInvitationRecord(input: {
+  token: string;
+  displayName: string;
+  password: string;
+  passwordConfirmation: string;
+}) {
+  const { token, displayName, password, passwordConfirmation } = input;
 
   if (!token || !displayName || !password || !passwordConfirmation) {
     throw new AppError("INVALID_INPUT", "必須項目が不足しています。");
@@ -119,10 +134,11 @@ export async function activateInvitation(formData: FormData) {
     });
   });
 
-  revalidatePath("/forums");
-  revalidatePath(`/forums/${invitation.forumId}`);
-  revalidatePath(`/forums/${invitation.forumId}/settings`);
-  redirect(`/activate/success?forumId=${invitation.forumId}` as Route);
+  return {
+    forumId: invitation.forumId,
+    invitationId: invitation.id,
+    email: invitation.email,
+  };
 }
 
 export const initialActivationActionState = initialFormActionState;

@@ -119,6 +119,12 @@ npm run test:watch
 npm run db:test-notifications
 ```
 
+招待アクティベーションの integration test:
+
+```bash
+npm run db:test-activation
+```
+
 削除待ちデータの完全削除バッチ:
 
 ```bash
