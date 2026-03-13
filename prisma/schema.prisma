@@ -49,26 +49,29 @@ enum NotificationType {
   COMMENT_ON_POST
   MENTION_IN_POST
   MENTION_IN_COMMENT
+  CHANNEL_POST
+  CHANNEL_COMMENT
 }
 
 model User {
-  id                 String         @id @default(uuid()) @db.Uuid
-  displayName        String
-  email              String?        @unique
-  mentionHandle      String?        @unique
-  passwordHash       String?
-  systemRole         SystemRole     @default(USER)
-  status             UserStatus     @default(INVITED)
-  createdAt          DateTime       @default(now())
-  updatedAt          DateTime       @updatedAt
-  createdForums      Forum[]        @relation("ForumCreator")
-  createdInvitations Invitation[]   @relation("InvitationCreator")
-  forumMemberships   ForumMember[]
-  createdChannels    Channel[]      @relation("ChannelCreator")
-  posts              Post[]
-  comments           Comment[]
-  notifications      Notification[] @relation("NotificationRecipient")
-  notificationActors Notification[] @relation("NotificationActor")
+  id                   String                @id @default(uuid()) @db.Uuid
+  displayName          String
+  email                String?               @unique
+  mentionHandle        String?               @unique
+  passwordHash         String?
+  systemRole           SystemRole            @default(USER)
+  status               UserStatus            @default(INVITED)
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  createdForums        Forum[]               @relation("ForumCreator")
+  createdInvitations   Invitation[]          @relation("InvitationCreator")
+  forumMemberships     ForumMember[]
+  createdChannels      Channel[]             @relation("ChannelCreator")
+  posts                Post[]
+  comments             Comment[]
+  channelSubscriptions ChannelSubscription[]
+  notifications        Notification[]        @relation("NotificationRecipient")
+  notificationActors   Notification[]        @relation("NotificationActor")
 }
 
 model Forum {
@@ -127,18 +130,30 @@ model ForumMember {
 }
 
 model Channel {
-  id              String   @id @default(uuid()) @db.Uuid
-  forumId         String   @db.Uuid
+  id              String                @id @default(uuid()) @db.Uuid
+  forumId         String                @db.Uuid
   name            String
   description     String?
-  createdByUserId String   @db.Uuid
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  forum           Forum    @relation(fields: [forumId], references: [id], onDelete: Cascade)
-  createdByUser   User     @relation("ChannelCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  createdByUserId String                @db.Uuid
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+  forum           Forum                 @relation(fields: [forumId], references: [id], onDelete: Cascade)
+  createdByUser   User                  @relation("ChannelCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
   posts           Post[]
+  subscriptions   ChannelSubscription[]
 
   @@unique([forumId, name])
+}
+
+model ChannelSubscription {
+  id        String   @id @default(uuid()) @db.Uuid
+  channelId String   @db.Uuid
+  userId    String   @db.Uuid
+  createdAt DateTime @default(now())
+  channel   Channel  @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([channelId, userId])
 }
 
 model Post {

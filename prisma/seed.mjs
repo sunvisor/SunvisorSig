@@ -15,6 +15,7 @@ function hashPassword(password) {
 
 async function main() {
   await prisma.notification.deleteMany();
+  await prisma.channelSubscription.deleteMany();
   await prisma.commentAttachment.deleteMany();
   await prisma.comment.deleteMany();
   await prisma.postAttachment.deleteMany();
@@ -229,6 +230,14 @@ async function main() {
       authorUserId: customerB.id,
       bodyMarkdown: "ありがとうございます。手順を確認して進めます。",
     },
+  });
+
+  await prisma.channelSubscription.createMany({
+    data: [
+      { channelId: qa.id, userId: admin.id },
+      { channelId: qa.id, userId: customerB.id },
+      { channelId: globexIncidentChannel.id, userId: admin.id },
+    ],
   });
 
   await prisma.post.create({

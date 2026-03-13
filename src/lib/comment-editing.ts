@@ -62,6 +62,7 @@ export async function updateComment(formData: FormData) {
   const notifiedUserIds = await createCommentNotifications({
     forumId,
     postId,
+    channelId,
     postAuthorUserId: comment.post.authorUserId,
     commentId: comment.id,
     actorUserId: currentUser.id,

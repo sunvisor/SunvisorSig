@@ -141,6 +141,11 @@ export const getChannelWithPostSearch = cache(
           },
         },
         createdByUser: true,
+        subscriptions: {
+          select: {
+            userId: true,
+          },
+        },
         posts: {
           where: {
             ...(normalizedQuery
@@ -197,6 +202,11 @@ export const getPost = cache(async (postId: string) => {
                 },
                 orderBy: { joinedAt: "asc" },
               },
+            },
+          },
+          subscriptions: {
+            select: {
+              userId: true,
             },
           },
         },

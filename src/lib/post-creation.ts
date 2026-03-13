@@ -93,6 +93,7 @@ export async function createPost(formData: FormData) {
   const notifiedUserIds = await createPostMentionNotifications({
     forumId,
     postId: post.id,
+    channelId,
     actorUserId: currentUser.id,
     actorDisplayName: currentUser.displayName,
     bodyMarkdown,

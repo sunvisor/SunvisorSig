@@ -81,6 +81,7 @@ export async function updatePostStatus(formData: FormData) {
     notifiedUserIds = await createCommentNotifications({
       forumId,
       postId: post.id,
+      channelId,
       postAuthorUserId: post.authorUserId,
       commentId: comment.id,
       actorUserId: currentUser.id,

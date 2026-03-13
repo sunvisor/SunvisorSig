@@ -56,6 +56,7 @@ async function getMentionTargets(
 export async function createPostMentionNotifications(params: {
   forumId: string;
   postId: string;
+  channelId: string;
   actorUserId: string;
   actorDisplayName: string;
   bodyMarkdown: string;
@@ -69,14 +70,12 @@ export async function createPostMentionNotifications(params: {
     params.actorUserId,
   );
 
-  if (mentionTargets.length === 0) {
-    return [];
-  }
-
   const existingNotifications = await client.notification.findMany({
     where: {
       postId: params.postId,
-      type: "MENTION_IN_POST",
+      type: {
+        in: ["MENTION_IN_POST", "CHANNEL_POST"],
+      },
     },
     select: {
       userId: true,
@@ -85,26 +84,50 @@ export async function createPostMentionNotifications(params: {
   const existingUserIds = new Set(existingNotifications.map((notification) => notification.userId));
   const newTargets = mentionTargets.filter((target) => !existingUserIds.has(target.id));
 
-  if (newTargets.length === 0) {
-    return [];
+  if (newTargets.length > 0) {
+    await client.notification.createMany({
+      data: newTargets.map((target) => ({
+        userId: target.id,
+        postId: params.postId,
+        actorUserId: params.actorUserId,
+        type: "MENTION_IN_POST",
+        message: `${params.actorDisplayName} が投稿であなたをメンションしました。`,
+      })),
+    });
   }
 
-  await client.notification.createMany({
-    data: newTargets.map((target) => ({
-      userId: target.id,
-      postId: params.postId,
-      actorUserId: params.actorUserId,
-      type: "MENTION_IN_POST",
-      message: `${params.actorDisplayName} が投稿であなたをメンションしました。`,
-    })),
+  const notifiedUserIds = newTargets.map((target) => target.id);
+  const subscribers = await client.channelSubscription.findMany({
+    where: {
+      channelId: params.channelId,
+      userId: {
+        notIn: [...notifiedUserIds, params.actorUserId],
+      },
+    },
+    select: {
+      userId: true,
+    },
   });
 
-  return newTargets.map((target) => target.id);
+  if (subscribers.length > 0) {
+    await client.notification.createMany({
+      data: subscribers.map((subscription) => ({
+        userId: subscription.userId,
+        postId: params.postId,
+        actorUserId: params.actorUserId,
+        type: "CHANNEL_POST",
+        message: `${params.actorDisplayName} が購読中のチャンネルに投稿しました。`,
+      })),
+    });
+  }
+
+  return [...notifiedUserIds, ...subscribers.map((subscription) => subscription.userId)];
 }
 
 export async function createCommentNotifications(params: {
   forumId: string;
   postId: string;
+  channelId: string;
   postAuthorUserId: string;
   commentId: string;
   actorUserId: string;
@@ -207,7 +230,35 @@ export async function createCommentNotifications(params: {
     data: notifications,
   });
 
-  return notifications.map((notification) => notification.userId);
+  const notifiedUserIds = notifications.map((notification) => notification.userId);
+  const subscribers = notifyThreadParticipants
+    ? await client.channelSubscription.findMany({
+        where: {
+          channelId: params.channelId,
+          userId: {
+            notIn: [...notifiedUserIds, params.actorUserId],
+          },
+        },
+        select: {
+          userId: true,
+        },
+      })
+    : [];
+
+  if (subscribers.length > 0) {
+    await client.notification.createMany({
+      data: subscribers.map((subscription) => ({
+        userId: subscription.userId,
+        postId: params.postId,
+        commentId: params.commentId,
+        actorUserId: params.actorUserId,
+        type: "CHANNEL_COMMENT",
+        message: `${params.actorDisplayName} が購読中のチャンネルにコメントしました。`,
+      })),
+    });
+  }
+
+  return [...notifiedUserIds, ...subscribers.map((subscription) => subscription.userId)];
 }
 
 export async function getUnreadNotifications(userId: string) {

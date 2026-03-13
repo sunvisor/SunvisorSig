@@ -3,10 +3,15 @@ import { Plus } from "lucide-react";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ChannelPostFilters } from "@/components/channel-post-filters";
+import { ChannelSubscriptionForm } from "@/components/channel-subscription-form";
 import { ForumShell } from "@/components/forum-shell";
 import { EmptyState, MetadataRow, PrimaryLink, SectionCard } from "@/components/forum-ui";
 import { PostStatusBadge } from "@/components/post-status-badge";
 import { getCurrentUser, isSystemAdmin } from "@/lib/auth";
+import {
+  initialChannelSubscriptionActionState,
+  toggleChannelSubscriptionAction,
+} from "@/lib/channel-subscription";
 import { formatDateTime } from "@/lib/date-time";
 import { getChannelWithPostSearch, isForumMember } from "@/lib/forum-data";
 import { getForumHeroStyle, getForumPageStyle } from "@/lib/forum-theme";
@@ -39,6 +44,10 @@ export default async function ChannelPage({ params, searchParams }: ChannelPageP
   if (!isForumMember(channel.forum, currentUser.id)) {
     notFound();
   }
+
+  const subscribed = channel.subscriptions.some(
+    (subscription) => subscription.userId === currentUser.id,
+  );
 
   return (
     <ForumShell
@@ -126,6 +135,15 @@ export default async function ChannelPage({ params, searchParams }: ChannelPageP
             <MetadataRow label="作成者" value={channel.createdByUser.displayName} />
             <MetadataRow label="更新日時" value={formatDateTime(channel.updatedAt)} />
           </dl>
+          <div className="mt-6">
+            <ChannelSubscriptionForm
+              action={toggleChannelSubscriptionAction}
+              channelId={channel.id}
+              forumId={channel.forum.id}
+              initialState={initialChannelSubscriptionActionState}
+              subscribed={subscribed}
+            />
+          </div>
         </SectionCard>
       </div>
     </ForumShell>
