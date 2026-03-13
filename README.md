@@ -125,6 +125,12 @@ npm run db:test-notifications
 npm run db:test-activation
 ```
 
+プロフィール更新の integration test:
+
+```bash
+npm run db:test-profile
+```
+
 削除待ちデータの完全削除バッチ:
 
 ```bash

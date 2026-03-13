@@ -16,6 +16,7 @@
     "db:test-deletion": "tsx prisma/test-deletion.ts",
     "db:test-notifications": "tsx prisma/test-notifications.ts",
     "db:test-activation": "tsx prisma/test-activation.ts",
+    "db:test-profile": "tsx prisma/test-profile.ts",
     "db:studio": "prisma studio",
     "postinstall": "prisma generate"
   },

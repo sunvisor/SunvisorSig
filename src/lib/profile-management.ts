@@ -9,16 +9,16 @@ const mentionHandlePattern = /^[a-z0-9_-]+$/;
 
 export const initialProfileActionState = initialFormActionState;
 
-export async function updateProfile(formData: FormData) {
-  "use server";
-
-  const currentUser = await requireCurrentUser();
-  const displayName = String(formData.get("displayName") ?? "").trim();
-  const rawMentionHandle = String(formData.get("mentionHandle") ?? "").trim().toLowerCase();
-  const nextPassword = String(formData.get("nextPassword") ?? "");
-  const nextPasswordConfirmation = String(
-    formData.get("nextPasswordConfirmation") ?? "",
-  );
+export function validateProfileInput(input: {
+  displayName: string;
+  mentionHandle: string;
+  nextPassword: string;
+  nextPasswordConfirmation: string;
+}) {
+  const displayName = input.displayName.trim();
+  const rawMentionHandle = input.mentionHandle.trim().toLowerCase();
+  const nextPassword = input.nextPassword;
+  const nextPasswordConfirmation = input.nextPasswordConfirmation;
 
   if (!displayName) {
     throw new AppError("INVALID_INPUT", "表示名を入力してください。");
@@ -41,14 +41,28 @@ export async function updateProfile(formData: FormData) {
     }
   }
 
-  const mentionHandle = rawMentionHandle || null;
+  return {
+    displayName,
+    mentionHandle: rawMentionHandle || null,
+    nextPassword,
+  };
+}
+
+export async function updateProfileRecord(input: {
+  userId: string;
+  displayName: string;
+  mentionHandle: string;
+  nextPassword: string;
+  nextPasswordConfirmation: string;
+}) {
+  const { displayName, mentionHandle, nextPassword } = validateProfileInput(input);
 
   if (mentionHandle) {
     const existingUser = await prisma.user.findFirst({
       where: {
         mentionHandle,
         id: {
-          not: currentUser.id,
+          not: input.userId,
         },
       },
       select: {
@@ -66,7 +80,7 @@ export async function updateProfile(formData: FormData) {
 
   await prisma.user.update({
     where: {
-      id: currentUser.id,
+      id: input.userId,
     },
     data: {
       displayName,
@@ -77,6 +91,20 @@ export async function updateProfile(formData: FormData) {
           }
         : {}),
     },
+  });
+}
+
+export async function updateProfile(formData: FormData) {
+  "use server";
+
+  const currentUser = await requireCurrentUser();
+
+  await updateProfileRecord({
+    userId: currentUser.id,
+    displayName: String(formData.get("displayName") ?? ""),
+    mentionHandle: String(formData.get("mentionHandle") ?? ""),
+    nextPassword: String(formData.get("nextPassword") ?? ""),
+    nextPasswordConfirmation: String(formData.get("nextPasswordConfirmation") ?? ""),
   });
 
   revalidatePath("/profile");
