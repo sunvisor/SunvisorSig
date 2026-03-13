@@ -21,6 +21,12 @@ type DeletePostInput = {
   actingUserId: string;
 };
 
+type DeleteChannelInput = {
+  forumId: string;
+  channelId: string;
+  actingUserId: string;
+};
+
 async function exists(pathname: string) {
   try {
     await access(pathname);
@@ -262,6 +268,146 @@ export async function deletePostById({
 
     await tx.post.delete({
       where: { id: post.id },
+    });
+  });
+}
+
+export async function deleteChannelById({
+  forumId,
+  channelId,
+  actingUserId,
+}: DeleteChannelInput) {
+  const channel = await prisma.channel.findUnique({
+    where: { id: channelId },
+    include: {
+      posts: {
+        include: {
+          attachments: true,
+          comments: {
+            include: {
+              attachments: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!channel || channel.forumId !== forumId) {
+    throw new Error("チャンネルが見つかりません。");
+  }
+
+  const actingUser = await prisma.user.findUnique({
+    where: { id: actingUserId },
+    select: { systemRole: true },
+  });
+
+  if (actingUser?.systemRole !== "ADMIN") {
+    throw new AppError("FORBIDDEN", "全体管理者のみチャンネルを削除できます。");
+  }
+
+  const { deletedAt, purgeAfter } = buildRetentionWindow();
+  const allPosts = channel.posts;
+  const allComments = allPosts.flatMap((post) => post.comments);
+  const deletedAttachments = [
+    ...allPosts.flatMap((post) =>
+      post.attachments.map((attachment) => ({
+        originalAttachmentId: attachment.id,
+        ownerType: "POST" as const,
+        ownerId: post.id,
+        storagePath: attachment.storagePath,
+        originalFilename: attachment.originalFilename,
+        mimeType: attachment.mimeType,
+        sizeBytes: attachment.sizeBytes,
+        deletedAt,
+        purgeAfter,
+      })),
+    ),
+    ...allComments.flatMap((comment) =>
+      comment.attachments.map((attachment) => ({
+        originalAttachmentId: attachment.id,
+        ownerType: "COMMENT" as const,
+        ownerId: comment.id,
+        storagePath: attachment.storagePath,
+        originalFilename: attachment.originalFilename,
+        mimeType: attachment.mimeType,
+        sizeBytes: attachment.sizeBytes,
+        deletedAt,
+        purgeAfter,
+      })),
+    ),
+  ];
+
+  await prisma.$transaction(async (tx) => {
+    if (deletedAttachments.length > 0) {
+      await tx.deletedAttachment.createMany({
+        data: deletedAttachments,
+      });
+    }
+
+    if (allComments.length > 0) {
+      await tx.deletedComment.createMany({
+        data: allComments.map((comment) => ({
+          originalCommentId: comment.id,
+          postId: comment.postId,
+          authorUserId: comment.authorUserId,
+          bodyMarkdown: comment.bodyMarkdown,
+          deletedByUserId: actingUserId,
+          deletedAt,
+          purgeAfter,
+          createdAt: comment.createdAt,
+        })),
+      });
+    }
+
+    if (allPosts.length > 0) {
+      await tx.deletedPost.createMany({
+        data: allPosts.map((post) => ({
+          originalPostId: post.id,
+          channelId: post.channelId,
+          authorUserId: post.authorUserId,
+          title: post.title,
+          bodyMarkdown: post.bodyMarkdown,
+          deletedByUserId: actingUserId,
+          deletedAt,
+          purgeAfter,
+          createdAt: post.createdAt,
+        })),
+      });
+    }
+
+    await tx.commentAttachment.deleteMany({
+      where: {
+        comment: {
+          post: {
+            channelId: channel.id,
+          },
+        },
+      },
+    });
+
+    await tx.comment.deleteMany({
+      where: {
+        post: {
+          channelId: channel.id,
+        },
+      },
+    });
+
+    await tx.postAttachment.deleteMany({
+      where: {
+        post: {
+          channelId: channel.id,
+        },
+      },
+    });
+
+    await tx.post.deleteMany({
+      where: { channelId: channel.id },
+    });
+
+    await tx.channel.delete({
+      where: { id: channel.id },
     });
   });
 }

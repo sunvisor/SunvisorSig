@@ -1,9 +1,14 @@
 import type { Route } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { ChannelDeleteForm } from "@/components/channel-delete-form";
 import { ForumShell } from "@/components/forum-shell";
 import { EmptyState, MetadataRow, PrimaryLink, SectionCard } from "@/components/forum-ui";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, isSystemAdmin } from "@/lib/auth";
+import {
+  deleteChannelAction,
+  initialChannelDeleteActionState,
+} from "@/lib/channel-deletion";
 import { formatDateTime } from "@/lib/date-time";
 import { getChannel, isForumMember } from "@/lib/forum-data";
 import { getForumHeroStyle, getForumPageStyle } from "@/lib/forum-theme";
@@ -42,11 +47,16 @@ export default async function ChannelPage({ params }: ChannelPageProps) {
         { label: channel.name },
       ]}
       actions={
-        <PrimaryLink
-          href={`/forums/${channel.forum.id}/channels/${channel.id}/posts/new` as Route}
-        >
-          投稿作成
-        </PrimaryLink>
+        <>
+          <PrimaryLink
+            href={`/forums/${channel.forum.id}/channels/${channel.id}/posts/new` as Route}
+          >
+            投稿作成
+          </PrimaryLink>
+          {isSystemAdmin(currentUser) ? (
+            <PrimaryLink href={`/forums/${channel.forum.id}` as Route}>フォーラムへ戻る</PrimaryLink>
+          ) : null}
+        </>
       }
     >
       <div className={ui.page.twoColumnGrid}>
@@ -88,6 +98,16 @@ export default async function ChannelPage({ params }: ChannelPageProps) {
             <MetadataRow label="作成者" value={channel.createdByUser.displayName} />
             <MetadataRow label="更新日時" value={formatDateTime(channel.updatedAt)} />
           </dl>
+          {isSystemAdmin(currentUser) ? (
+            <div className="mt-6">
+              <ChannelDeleteForm
+                action={deleteChannelAction}
+                channelId={channel.id}
+                forumId={channel.forum.id}
+                initialState={initialChannelDeleteActionState}
+              />
+            </div>
+          ) : null}
         </SectionCard>
       </div>
     </ForumShell>
