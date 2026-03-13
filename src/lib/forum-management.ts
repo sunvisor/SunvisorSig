@@ -51,6 +51,7 @@ export const initialInvitationActionState: InvitationActionState = {
 
 export const initialForumActionState = initialFormActionState;
 export const initialForumMemberActionState = initialFormActionState;
+export const initialInvitationCancelActionState = initialFormActionState;
 
 export async function createForum(formData: FormData) {
   "use server";
@@ -411,4 +412,30 @@ export async function cancelInvitation(formData: FormData) {
   });
 
   revalidateForumPaths(forumId);
+}
+
+export async function cancelInvitationAction(
+  _previousState: FormActionState,
+  formData: FormData,
+): Promise<FormActionState> {
+  "use server";
+
+  try {
+    await cancelInvitation(formData);
+
+    return {
+      ok: true,
+      message: "招待を取り消しました。",
+    };
+  } catch (error) {
+    if (isAppError(error)) {
+      return {
+        ok: false,
+        code: error.code,
+        message: error.message,
+      };
+    }
+
+    throw error;
+  }
 }

@@ -1,6 +1,11 @@
+import { ActivationForm } from "@/components/activation-form";
 import { ForumShell } from "@/components/forum-shell";
 import { EmptyState, SectionCard } from "@/components/forum-ui";
-import { activateInvitation, getInvitationForActivation } from "@/lib/invitation-activation";
+import {
+  activateInvitationAction,
+  getInvitationForActivation,
+  initialActivationActionState,
+} from "@/lib/invitation-activation";
 import { getForumHeroStyle, getForumPageStyle } from "@/lib/forum-theme";
 import { ui } from "@/lib/ui-classes";
 
@@ -55,55 +60,11 @@ export default async function ActivatePage({ searchParams }: ActivatePageProps) 
       ) : (
         <SectionCard title="アカウントを有効化">
           <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-            <form action={activateInvitation} className={ui.form.layout}>
-              <input name="token" type="hidden" value={invitation.token} />
-              <div className={ui.form.group}>
-                <label className={ui.text.label} htmlFor="displayName">
-                  表示名
-                </label>
-                <input
-                  className={ui.form.input}
-                  id="displayName"
-                  name="displayName"
-                  placeholder="例: Acme Customer"
-                  required
-                  type="text"
-                />
-              </div>
-              <div className={ui.form.group}>
-                <label className={ui.text.label} htmlFor="password">
-                  パスワード
-                </label>
-                <input
-                  className={ui.form.input}
-                  id="password"
-                  minLength={8}
-                  name="password"
-                  placeholder="8文字以上"
-                  required
-                  type="password"
-                />
-              </div>
-              <div className={ui.form.group}>
-                <label className={ui.text.label} htmlFor="passwordConfirmation">
-                  パスワード確認
-                </label>
-                <input
-                  className={ui.form.input}
-                  id="passwordConfirmation"
-                  minLength={8}
-                  name="passwordConfirmation"
-                  placeholder="もう一度入力"
-                  required
-                  type="password"
-                />
-              </div>
-              <div className={ui.form.actions}>
-                <button className={ui.button.primary} type="submit">
-                  アカウントを有効化
-                </button>
-              </div>
-            </form>
+            <ActivationForm
+              action={activateInvitationAction}
+              initialState={initialActivationActionState}
+              token={invitation.token}
+            />
             <div className={`${ui.surface.mutedCard} grid gap-4 p-5`}>
               <div>
                 <p className={ui.text.meta}>招待先メールアドレス</p>

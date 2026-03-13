@@ -1,7 +1,8 @@
 import type { Route } from "next";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { AppError } from "@/lib/app-error";
+import { initialFormActionState, type FormActionState } from "@/lib/action-state";
+import { AppError, isAppError } from "@/lib/app-error";
 import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/password";
 
@@ -116,6 +117,31 @@ export async function activateInvitation(formData: FormData) {
   revalidatePath(`/forums/${invitation.forumId}`);
   revalidatePath(`/forums/${invitation.forumId}/settings`);
   redirect(`/activate/success?forumId=${invitation.forumId}` as Route);
+}
+
+export const initialActivationActionState = initialFormActionState;
+
+export async function activateInvitationAction(
+  _previousState: FormActionState,
+  formData: FormData,
+): Promise<FormActionState> {
+  "use server";
+
+  try {
+    await activateInvitation(formData);
+  } catch (error) {
+    if (isAppError(error)) {
+      return {
+        ok: false,
+        code: error.code,
+        message: error.message,
+      };
+    }
+
+    throw error;
+  }
+
+  return initialFormActionState;
 }
 
 export async function getInvitationForActivation(token: string) {

@@ -1,10 +1,10 @@
 import type { Route } from "next";
 import { notFound, redirect } from "next/navigation";
-import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { ForumForm } from "@/components/forum-form";
 import { ForumMemberAddForm } from "@/components/forum-member-add-form";
 import { ForumMemberRemoveForm } from "@/components/forum-member-remove-form";
 import { ForumShell } from "@/components/forum-shell";
+import { InvitationCancelForm } from "@/components/invitation-cancel-form";
 import { InvitationCreateForm } from "@/components/invitation-create-form";
 import { PrimaryLink, SectionCard } from "@/components/forum-ui";
 import { getActiveUsers, getForum } from "@/lib/forum-data";
@@ -12,12 +12,13 @@ import { getCurrentUser, isSystemAdmin } from "@/lib/auth";
 import { getForumHeroStyle, getForumPageStyle } from "@/lib/forum-theme";
 import {
   addForumMemberAction,
-  cancelInvitation,
-  removeForumMemberAction,
   createInvitationAction,
   initialForumActionState,
   initialForumMemberActionState,
+  initialInvitationCancelActionState,
   initialInvitationActionState,
+  cancelInvitationAction,
+  removeForumMemberAction,
   updateForumAction,
 } from "@/lib/forum-management";
 import { formatDateTime } from "@/lib/date-time";
@@ -167,17 +168,12 @@ export default async function ForumSettingsPage({ params }: ForumSettingsPagePro
                         </div>
                       </div>
                       {canCancel ? (
-                        <form action={cancelInvitation}>
-                          <input name="forumId" type="hidden" value={forum.id} />
-                          <input name="invitationId" type="hidden" value={invitation.id} />
-                          <ConfirmSubmitButton
-                            className={ui.button.dangerCompact}
-                            description="取り消した招待リンクは無効になります。"
-                            message="この招待を取り消しますか？"
-                          >
-                            招待を取消
-                          </ConfirmSubmitButton>
-                        </form>
+                        <InvitationCancelForm
+                          action={cancelInvitationAction}
+                          forumId={forum.id}
+                          initialState={initialInvitationCancelActionState}
+                          invitationId={invitation.id}
+                        />
                       ) : null}
                     </div>
                     <div className={`${ui.surface.card} p-4`}>
