@@ -34,6 +34,12 @@ enum DeletedAttachmentOwnerType {
   COMMENT
 }
 
+enum PostStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+}
+
 model User {
   id                 String        @id @default(uuid()) @db.Uuid
   displayName        String
@@ -127,6 +133,7 @@ model Post {
   authorUserId String           @db.Uuid
   title        String
   bodyMarkdown String           @db.Text
+  status       PostStatus?
   createdAt    DateTime         @default(now())
   updatedAt    DateTime         @updatedAt
   channel      Channel          @relation(fields: [channelId], references: [id], onDelete: Cascade)

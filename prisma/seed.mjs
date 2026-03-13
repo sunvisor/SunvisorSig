@@ -182,6 +182,7 @@ async function main() {
     data: {
       channelId: qa.id,
       authorUserId: customerA.id,
+      status: "IN_PROGRESS",
       title: "初期設定の確認ポイント",
       bodyMarkdown:
         "初期設定で確認すべき項目をまとめたいです。\n\n画面キャプチャは [設定画面](attachment:setup.png) を参照してください。",
@@ -230,6 +231,7 @@ async function main() {
     data: {
       channelId: globexIncidentChannel.id,
       authorUserId: customerB.id,
+      status: "TODO",
       title: "夜間バッチの監視について",
       bodyMarkdown:
         "夜間バッチの失敗通知をこのチャンネルで確認できるようにしたいです。",
@@ -240,6 +242,7 @@ async function main() {
     data: {
       channelId: initechPlanningChannel.id,
       authorUserId: customerA.id,
+      status: "DONE",
       title: "次期リリースの要望整理",
       bodyMarkdown:
         "企画候補をここで整理して、優先度を決めていきたいです。",

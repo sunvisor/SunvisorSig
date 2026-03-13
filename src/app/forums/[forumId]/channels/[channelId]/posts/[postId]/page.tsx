@@ -12,12 +12,18 @@ import {
   SectionCard,
 } from "@/components/forum-ui";
 import { PostInlineEditor } from "@/components/post-inline-editor";
+import { PostStatusBadge } from "@/components/post-status-badge";
+import { PostStatusForm } from "@/components/post-status-form";
 import { initialCommentEditActionState, updateCommentAction } from "@/lib/comment-editing";
 import { getCurrentUser, isSystemAdmin } from "@/lib/auth";
 import { createComment } from "@/lib/comment-creation";
 import { deleteComment } from "@/lib/comment-deletion";
 import { deletePost } from "@/lib/post-deletion";
 import { initialPostEditActionState, updatePostAction } from "@/lib/post-editing";
+import {
+  initialPostStatusActionState,
+  updatePostStatusAction,
+} from "@/lib/post-status-editing";
 import { formatDateTime } from "@/lib/date-time";
 import { getPost, isForumMember } from "@/lib/forum-data";
 import { getForumHeroStyle, getForumPageStyle } from "@/lib/forum-theme";
@@ -171,11 +177,30 @@ export default async function PostPage({ params }: PostPageProps) {
         <SectionCard title="投稿情報">
           <dl className="grid gap-3">
             <MetadataRow label="投稿者" value={post.authorUser.displayName} />
+            {post.status ? (
+              <MetadataRow label="状態" value={<PostStatusBadge status={post.status} />} />
+            ) : null}
             <MetadataRow label="添付数" value={post.attachments.length} />
             <MetadataRow label="コメント数" value={post.comments.length} />
             <MetadataRow label="作成日時" value={formatDateTime(post.createdAt)} />
             <MetadataRow label="更新日時" value={formatDateTime(post.updatedAt)} />
           </dl>
+          <div className="mt-6">
+            <h3 className="text-sm font-semibold text-slate-950">状態を変更</h3>
+            <p className="mt-1 text-sm text-slate-600">
+              フォーラム参加者であれば、だれでも状態を更新できます。
+            </p>
+            <div className="mt-3">
+              <PostStatusForm
+                action={updatePostStatusAction}
+                channelId={channelId}
+                currentStatus={post.status}
+                forumId={forumId}
+                initialState={initialPostStatusActionState}
+                postId={postId}
+              />
+            </div>
+          </div>
           <div className="mt-4 grid gap-3">
             {post.attachments.map((attachment) => (
               <AttachmentLink

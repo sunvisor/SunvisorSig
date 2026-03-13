@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { ChannelDeleteForm } from "@/components/channel-delete-form";
 import { ForumShell } from "@/components/forum-shell";
 import { EmptyState, MetadataRow, PrimaryLink, SectionCard } from "@/components/forum-ui";
+import { PostStatusBadge } from "@/components/post-status-badge";
 import { getCurrentUser, isSystemAdmin } from "@/lib/auth";
 import {
   deleteChannelAction,
@@ -108,7 +109,10 @@ export default async function ChannelPage({ params, searchParams }: ChannelPageP
                     `/forums/${channel.forum.id}/channels/${channel.id}/posts/${post.id}` as Route
                   }
                 >
-                  <p className="theme-text font-medium">{post.title}</p>
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="theme-text font-medium">{post.title}</p>
+                    {post.status ? <PostStatusBadge status={post.status} /> : null}
+                  </div>
                   <p className={`mt-2 ${ui.text.body}`}>{post.bodyMarkdown}</p>
                   <div className={`mt-4 flex flex-wrap gap-4 ${ui.text.meta}`}>
                     <span>Author {post.authorUser.displayName}</span>
