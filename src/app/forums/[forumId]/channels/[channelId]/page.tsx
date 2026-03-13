@@ -13,19 +13,21 @@ import {
 import { formatDateTime } from "@/lib/date-time";
 import { getChannelWithPostSearch, isForumMember } from "@/lib/forum-data";
 import { getForumHeroStyle, getForumPageStyle } from "@/lib/forum-theme";
+import { getPostStatusLabel, postStatusFilterOptions } from "@/lib/post-status";
 import { ui } from "@/lib/ui-classes";
 
 type ChannelPageProps = Readonly<{
   params: Promise<{ forumId: string; channelId: string }>;
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<{ q?: string; status?: string }>;
 }>;
 
 export default async function ChannelPage({ params, searchParams }: ChannelPageProps) {
   const { forumId, channelId } = await params;
-  const { q = "" } = await searchParams;
+  const { q = "", status = "" } = await searchParams;
   const query = q.trim();
+  const selectedStatus = status.trim();
   const [channel, currentUser] = await Promise.all([
-    getChannelWithPostSearch(channelId, query),
+    getChannelWithPostSearch(channelId, query, selectedStatus),
     getCurrentUser(),
   ]);
 
@@ -68,7 +70,7 @@ export default async function ChannelPage({ params, searchParams }: ChannelPageP
     >
       <div className={ui.page.twoColumnGrid}>
         <SectionCard title="投稿一覧">
-          <form action="" className="mb-5 grid gap-3 md:grid-cols-[minmax(0,1fr)_auto_auto]">
+          <form action="" className="mb-5 grid gap-3 md:grid-cols-[minmax(0,1fr)_220px_auto_auto]">
             <input
               className={ui.form.input}
               defaultValue={query}
@@ -76,25 +78,44 @@ export default async function ChannelPage({ params, searchParams }: ChannelPageP
               placeholder="投稿タイトルや本文を検索"
               type="search"
             />
+            <select
+              className={ui.form.select}
+              defaultValue={selectedStatus}
+              name="status"
+            >
+              {postStatusFilterOptions.map((option) => (
+                <option key={option.value || "ALL"} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
             <button className={ui.button.primary} type="submit">
               検索
             </button>
-            {query ? (
+            {query || selectedStatus ? (
               <PrimaryLink href={`/forums/${channel.forum.id}/channels/${channel.id}` as Route}>
                 クリア
               </PrimaryLink>
             ) : null}
           </form>
-          {query ? (
+          {query || selectedStatus ? (
             <p className={`${ui.text.meta} mb-4`}>
-              &quot;{query}&quot; の検索結果: {channel.posts.length} 件
+              検索結果: {channel.posts.length} 件
+              {query ? ` / キーワード: "${query}"` : ""}
+              {selectedStatus
+                ? ` / 状態: ${
+                    selectedStatus === "NONE"
+                      ? "状態なし"
+                      : getPostStatusLabel(selectedStatus)
+                  }`
+                : ""}
             </p>
           ) : null}
           {channel.posts.length === 0 ? (
             <EmptyState
               title={query ? "一致する投稿がありません" : "投稿がありません"}
               description={
-                query
+                query || selectedStatus
                   ? "検索条件を変えるか、キーワードをクリアしてください。"
                   : "最初の投稿を作成すると、ここにスレッド一覧が表示されます。"
               }

@@ -114,60 +114,74 @@ export const getChannel = cache(async (channelId: string) => {
   });
 });
 
-export const getChannelWithPostSearch = cache(async (channelId: string, query: string) => {
-  const normalizedQuery = query.trim();
+export const getChannelWithPostSearch = cache(
+  async (channelId: string, query: string, status: string) => {
+    const normalizedQuery = query.trim();
+    const normalizedStatus = status.trim();
+    const statusFilter =
+      normalizedStatus === "NONE"
+        ? null
+        : normalizedStatus === "TODO" ||
+            normalizedStatus === "IN_PROGRESS" ||
+            normalizedStatus === "DONE"
+          ? normalizedStatus
+          : undefined;
 
-  return prisma.channel.findUnique({
-    where: { id: channelId },
-    include: {
-      forum: {
-        include: {
-          members: {
-            include: {
-              user: true,
+    return prisma.channel.findUnique({
+      where: { id: channelId },
+      include: {
+        forum: {
+          include: {
+            members: {
+              include: {
+                user: true,
+              },
+              orderBy: { joinedAt: "asc" },
             },
-            orderBy: { joinedAt: "asc" },
           },
         },
-      },
-      createdByUser: true,
-      posts: {
-        where: normalizedQuery
-          ? {
-              OR: [
-                {
-                  title: {
-                    contains: normalizedQuery,
-                    mode: "insensitive",
+        createdByUser: true,
+        posts: {
+          where: {
+            ...(normalizedQuery
+              ? {
+                  OR: [
+                    {
+                      title: {
+                        contains: normalizedQuery,
+                        mode: "insensitive",
+                      },
+                    },
+                    {
+                      bodyMarkdown: {
+                        contains: normalizedQuery,
+                        mode: "insensitive",
+                      },
+                    },
+                  ],
+                }
+              : {}),
+            ...(statusFilter !== undefined ? { status: statusFilter } : {}),
+          },
+          orderBy: { updatedAt: "desc" },
+          include: {
+            authorUser: true,
+            attachments: true,
+            comments: {
+              include: {
+                _count: {
+                  select: {
+                    attachments: true,
                   },
-                },
-                {
-                  bodyMarkdown: {
-                    contains: normalizedQuery,
-                    mode: "insensitive",
-                  },
-                },
-              ],
-            }
-          : undefined,
-        orderBy: { updatedAt: "desc" },
-        include: {
-          authorUser: true,
-          attachments: true,
-          comments: {
-            include: {
-              _count: {
-                select: {
-                  attachments: true,
                 },
               },
             },
           },
         },
       },
-    },
-  });
-});
+    });
+  },
+);
 
 export const getPost = cache(async (postId: string) => {
   return prisma.post.findUnique({

@@ -5,6 +5,14 @@ export const postStatusOptions = [
   { value: "DONE", label: "完了" },
 ] as const;
 
+export const postStatusFilterOptions = [
+  { value: "", label: "すべての状態" },
+  { value: "NONE", label: "状態なし" },
+  { value: "TODO", label: "未対応" },
+  { value: "IN_PROGRESS", label: "対応中" },
+  { value: "DONE", label: "完了" },
+] as const;
+
 export function getPostStatusLabel(status: string | null | undefined) {
   const matched = postStatusOptions.find((option) => option.value === (status ?? ""));
   return matched?.label ?? "状態管理なし";
