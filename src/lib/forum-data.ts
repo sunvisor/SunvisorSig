@@ -19,6 +19,7 @@ export const getForums = cache(async (userId: string) => {
     },
     orderBy: { updatedAt: "desc" },
     include: {
+      createdByUser: true,
       channels: {
         orderBy: { updatedAt: "desc" },
         include: {
@@ -46,13 +47,6 @@ export const getForums = cache(async (userId: string) => {
 
 export function isForumMember(forum: { members: Array<{ userId: string }> }, userId: string) {
   return forum.members.some((member) => member.userId === userId);
-}
-
-export function isForumAdmin(
-  forum: { members: Array<{ userId: string; role: string }> },
-  userId: string,
-) {
-  return forum.members.some((member) => member.userId === userId && member.role === "ADMIN");
 }
 
 export const getForum = cache(async (forumId: string) => {

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ForumShell } from "@/components/forum-shell";
 import { EmptyState, MetadataRow, PrimaryLink, SectionCard } from "@/components/forum-ui";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, isSystemAdmin } from "@/lib/auth";
 import { formatDateTime } from "@/lib/date-time";
 import { getForums } from "@/lib/forum-data";
 import { getForumCardStyle } from "@/lib/forum-theme";
@@ -25,7 +25,9 @@ export default async function ForumsPage() {
       description="参加対象のフォーラムと、その中にあるチャンネルを確認できます。"
       actions={
         <>
-          <PrimaryLink href={"/forums/new" as Route}>フォーラム作成</PrimaryLink>
+          {isSystemAdmin(currentUser) ? (
+            <PrimaryLink href={"/forums/new" as Route}>フォーラム作成</PrimaryLink>
+          ) : null}
           <PrimaryLink href={"/forums" as Route}>一覧を更新</PrimaryLink>
         </>
       }
@@ -51,10 +53,7 @@ export default async function ForumsPage() {
                 <dl className={ui.list.metadataGrid3}>
                   <MetadataRow label="チャンネル数" value={forum._count.channels} />
                   <MetadataRow label="参加者数" value={forum.members.length} />
-                  <MetadataRow
-                    label="管理者"
-                    value={forum.members.find((member) => member.role === "ADMIN")?.user.displayName ?? "-"}
-                  />
+                  <MetadataRow label="作成者" value={forum.createdByUser.displayName} />
                 </dl>
                 <p className={ui.text.meta}>
                   Updated {formatDateTime(forum.updatedAt)}

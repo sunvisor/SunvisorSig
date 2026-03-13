@@ -2,20 +2,21 @@ import type { Route } from "next";
 import { notFound, redirect } from "next/navigation";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { ForumForm } from "@/components/forum-form";
+import { ForumMemberAddForm } from "@/components/forum-member-add-form";
 import { ForumShell } from "@/components/forum-shell";
 import { InvitationCreateForm } from "@/components/invitation-create-form";
 import { PrimaryLink, SectionCard } from "@/components/forum-ui";
-import { getActiveUsers, getForum, isForumAdmin } from "@/lib/forum-data";
-import { getCurrentUser } from "@/lib/auth";
+import { getActiveUsers, getForum } from "@/lib/forum-data";
+import { getCurrentUser, isSystemAdmin } from "@/lib/auth";
 import { getForumHeroStyle, getForumPageStyle } from "@/lib/forum-theme";
 import {
-  addForumMember,
+  addForumMemberAction,
   cancelInvitation,
   removeForumMember,
   createInvitationAction,
+  initialForumMemberActionState,
   initialInvitationActionState,
   updateForum,
-  updateForumMemberRole,
 } from "@/lib/forum-management";
 import { formatDateTime } from "@/lib/date-time";
 import { ui } from "@/lib/ui-classes";
@@ -40,16 +41,10 @@ export default async function ForumSettingsPage({ params }: ForumSettingsPagePro
     redirect("/login");
   }
 
-  if (!isForumAdmin(forum, currentUser.id)) {
+  if (!isSystemAdmin(currentUser)) {
     notFound();
   }
 
-  const admins = forum.members
-    .filter((member) => member.role === "ADMIN")
-    .map((member) => ({
-      id: member.userId,
-      displayName: member.user.displayName,
-    }));
   const candidateUsers = users.filter(
     (user) => !forum.members.some((member) => member.userId === user.id),
   );
@@ -90,45 +85,18 @@ export default async function ForumSettingsPage({ params }: ForumSettingsPagePro
               追加できるアクティブユーザーはありません。
             </p>
           ) : (
-            <form action={addForumMember} className={ui.form.layout}>
-              <input name="forumId" type="hidden" value={forum.id} />
-              <div className={ui.form.group}>
-                <label className={ui.text.label} htmlFor="userId">
-                  ユーザー
-                </label>
-                <select className={ui.form.select} id="userId" name="userId" required>
-                  {candidateUsers.map((user) => (
-                    <option key={user.id} value={user.id}>
-                      {user.displayName}
-                      {user.email ? ` (${user.email})` : ""}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className={ui.form.group}>
-                <label className={ui.text.label} htmlFor="role">
-                  ロール
-                </label>
-                <select className={ui.form.select} defaultValue="PARTICIPANT" id="role" name="role">
-                  <option value="PARTICIPANT">PARTICIPANT</option>
-                  <option value="ADMIN">ADMIN</option>
-                </select>
-              </div>
-              <div className={ui.form.actions}>
-                <button className={ui.button.primary} type="submit">
-                  参加者を追加
-                </button>
-              </div>
-            </form>
+            <ForumMemberAddForm
+              action={addForumMemberAction}
+              candidateUsers={candidateUsers}
+              forumId={forum.id}
+              initialState={initialForumMemberActionState}
+            />
           )}
         </SectionCard>
       </div>
       <SectionCard title="参加者一覧">
         <div className="grid gap-4">
           {forum.members.map((member) => {
-            const isLastAdmin =
-              member.role === "ADMIN" && admins.length === 1;
-
             return (
               <div key={member.id} className={`${ui.surface.mutedCard} grid gap-4 p-5 lg:grid-cols-[1.3fr_1fr_auto]`}>
                 <div className="grid gap-2">
@@ -141,33 +109,15 @@ export default async function ForumSettingsPage({ params }: ForumSettingsPagePro
                     </span>
                   </div>
                 </div>
-                <form action={updateForumMemberRole} className="grid gap-3">
-                  <input name="forumId" type="hidden" value={forum.id} />
-                  <input name="userId" type="hidden" value={member.userId} />
-                  <label className={ui.text.label} htmlFor={`role-${member.id}`}>
-                    ロール
-                  </label>
-                  <select
-                    className={ui.form.select}
-                    defaultValue={member.role}
-                    disabled={isLastAdmin}
-                    id={`role-${member.id}`}
-                    name="role"
-                  >
-                    <option value="PARTICIPANT">PARTICIPANT</option>
-                    <option value="ADMIN">ADMIN</option>
-                  </select>
-                  <button
-                    className={ui.button.secondary}
-                    disabled={isLastAdmin}
-                    type="submit"
-                  >
-                    ロール更新
-                  </button>
-                </form>
+                <div className="grid gap-2 content-start">
+                  <p className={ui.text.label}>システム権限</p>
+                  <p className="theme-text text-sm font-medium">
+                    {member.user.systemRole === "ADMIN" ? "全体管理者" : "利用者"}
+                  </p>
+                </div>
                 <div className="flex items-start justify-end">
-                  {isLastAdmin ? (
-                    <p className={ui.text.subtleMeta}>最後の管理者</p>
+                  {member.userId === currentUser.id ? (
+                    <p className={ui.text.subtleMeta}>現在のログインユーザー</p>
                   ) : (
                     <form action={removeForumMember}>
                       <input name="forumId" type="hidden" value={forum.id} />
@@ -212,7 +162,6 @@ export default async function ForumSettingsPage({ params }: ForumSettingsPagePro
                       <div>
                         <p className="theme-text text-base font-medium">{invitation.email}</p>
                         <div className="mt-2 flex flex-wrap gap-4">
-                          <span className={ui.text.meta}>Role {invitation.role}</span>
                           <span className={ui.text.meta}>Status {invitation.status}</span>
                           <span className={ui.text.subtleMeta}>
                             Expires {formatDateTime(invitation.expiresAt)}

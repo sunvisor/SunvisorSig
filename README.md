@@ -48,7 +48,7 @@ npm run dev
 
 seed データのログイン用アカウント:
 
-- `admin@example.com`
+- `admin@example.com` （全体管理者）
 - `acme@example.com`
 - `globex@example.com`
 

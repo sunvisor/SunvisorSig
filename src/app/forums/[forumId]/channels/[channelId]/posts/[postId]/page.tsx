@@ -11,12 +11,12 @@ import {
   SectionCard,
 } from "@/components/forum-ui";
 import { MarkdownContent } from "@/components/markdown-content";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, isSystemAdmin } from "@/lib/auth";
 import { createComment } from "@/lib/comment-creation";
 import { deleteComment } from "@/lib/comment-deletion";
 import { deletePost } from "@/lib/post-deletion";
 import { formatDateTime } from "@/lib/date-time";
-import { getPost, isForumAdmin, isForumMember } from "@/lib/forum-data";
+import { getPost, isForumMember } from "@/lib/forum-data";
 import { getForumHeroStyle, getForumPageStyle } from "@/lib/forum-theme";
 
 type PostPageProps = Readonly<{
@@ -43,7 +43,7 @@ export default async function PostPage({ params }: PostPageProps) {
     notFound();
   }
 
-  const isAdmin = isForumAdmin(post.channel.forum, currentUser.id);
+  const isAdmin = isSystemAdmin(currentUser);
 
   return (
     <ForumShell

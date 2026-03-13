@@ -1,5 +1,7 @@
 import { randomBytes, scryptSync } from "node:crypto";
-import { PrismaClient, ForumRole, UserStatus } from "@prisma/client";
+import prismaClient from "@prisma/client";
+
+const { PrismaClient, SystemRole, UserStatus } = prismaClient;
 
 const prisma = new PrismaClient();
 const SCRYPT_KEY_LENGTH = 64;
@@ -27,6 +29,7 @@ async function main() {
         displayName: "Sunvisor Admin",
         email: "admin@example.com",
         passwordHash: hashPassword("password123"),
+        systemRole: SystemRole.ADMIN,
         status: UserStatus.ACTIVE,
       },
     }),
@@ -35,6 +38,7 @@ async function main() {
         displayName: "Acme Customer",
         email: "acme@example.com",
         passwordHash: hashPassword("password123"),
+        systemRole: SystemRole.USER,
         status: UserStatus.ACTIVE,
       },
     }),
@@ -43,6 +47,7 @@ async function main() {
         displayName: "Globex Customer",
         email: "globex@example.com",
         passwordHash: hashPassword("password123"),
+        systemRole: SystemRole.USER,
         status: UserStatus.ACTIVE,
       },
     }),
@@ -107,13 +112,13 @@ async function main() {
 
   await prisma.forumMember.createMany({
     data: [
-      { forumId: acmeForum.id, userId: admin.id, role: ForumRole.ADMIN },
-      { forumId: acmeForum.id, userId: customerA.id, role: ForumRole.PARTICIPANT },
-      { forumId: acmeForum.id, userId: customerB.id, role: ForumRole.PARTICIPANT },
-      { forumId: globexForum.id, userId: admin.id, role: ForumRole.ADMIN },
-      { forumId: globexForum.id, userId: customerB.id, role: ForumRole.PARTICIPANT },
-      { forumId: initechForum.id, userId: admin.id, role: ForumRole.ADMIN },
-      { forumId: initechForum.id, userId: customerA.id, role: ForumRole.PARTICIPANT },
+      { forumId: acmeForum.id, userId: admin.id, role: "PARTICIPANT" },
+      { forumId: acmeForum.id, userId: customerA.id, role: "PARTICIPANT" },
+      { forumId: acmeForum.id, userId: customerB.id, role: "PARTICIPANT" },
+      { forumId: globexForum.id, userId: admin.id, role: "PARTICIPANT" },
+      { forumId: globexForum.id, userId: customerB.id, role: "PARTICIPANT" },
+      { forumId: initechForum.id, userId: admin.id, role: "PARTICIPANT" },
+      { forumId: initechForum.id, userId: customerA.id, role: "PARTICIPANT" },
     ],
   });
 

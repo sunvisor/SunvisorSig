@@ -2,11 +2,12 @@ import type { Route } from "next";
 import { randomBytes } from "node:crypto";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { requireCurrentUser } from "@/lib/auth";
+import { requireSystemAdmin } from "@/lib/auth";
+import { initialFormActionState, type FormActionState } from "@/lib/action-state";
 import { prisma } from "@/lib/prisma";
 import { AppError, isAppError, type AppErrorCode } from "@/lib/app-error";
 import { getForumThemePreset } from "@/lib/forum-theme";
-import type { ForumRole, InvitationStatus } from "@prisma/client";
+import type { InvitationStatus } from "@prisma/client";
 
 function normalizeDescription(formData: FormData) {
   const value = String(formData.get("description") ?? "").trim();
@@ -14,21 +15,17 @@ function normalizeDescription(formData: FormData) {
   return value.length > 0 ? value : null;
 }
 
-async function assertAdminMembership(forumId: string, userId: string) {
-  const membership = await prisma.forumMember.findUnique({
-    where: {
-      forumId_userId: {
-        forumId,
-        userId,
-      },
-    },
+async function assertForumExists(forumId: string) {
+  const forum = await prisma.forum.findUnique({
+    where: { id: forumId },
+    select: { id: true },
   });
 
-  if (!membership || membership.role !== "ADMIN") {
-    throw new AppError("FORBIDDEN", "管理者のみ操作できます。");
+  if (!forum) {
+    throw new AppError("INVALID_INPUT", "対象のフォーラムが見つかりません。");
   }
 
-  return membership;
+  return forum;
 }
 
 function revalidateForumPaths(forumId: string) {
@@ -52,27 +49,20 @@ export const initialInvitationActionState: InvitationActionState = {
   message: "",
 };
 
+export const initialForumMemberActionState = initialFormActionState;
+
 export async function createForum(formData: FormData) {
   "use server";
 
   const name = String(formData.get("name") ?? "").trim();
   const description = normalizeDescription(formData);
   const themeName = String(formData.get("themeName") ?? "").trim();
-  const currentUser = await requireCurrentUser();
+  const currentUser = await requireSystemAdmin();
   const createdByUserId = currentUser.id;
 
   if (!name || !themeName) {
     throw new Error("必須項目が不足しています。");
   }
-
-  const user = await prisma.user.findUnique({
-    where: { id: createdByUserId },
-  });
-
-  if (!user || user.status !== "ACTIVE") {
-    throw new Error("有効な管理者を選択してください。");
-  }
-
   const theme = getForumThemePreset(themeName);
 
   const forum = await prisma.forum.create({
@@ -84,7 +74,7 @@ export async function createForum(formData: FormData) {
       members: {
         create: {
           userId: createdByUserId,
-          role: "ADMIN",
+          role: "PARTICIPANT",
         },
       },
     },
@@ -101,14 +91,13 @@ export async function updateForum(formData: FormData) {
   const name = String(formData.get("name") ?? "").trim();
   const description = normalizeDescription(formData);
   const themeName = String(formData.get("themeName") ?? "").trim();
-  const currentUser = await requireCurrentUser();
-  const createdByUserId = currentUser.id;
+  await requireSystemAdmin();
 
   if (!forumId || !name || !themeName) {
     throw new Error("必須項目が不足しています。");
   }
 
-  await assertAdminMembership(forumId, createdByUserId);
+  await assertForumExists(forumId);
 
   const theme = getForumThemePreset(themeName);
 
@@ -130,22 +119,20 @@ export async function addForumMember(formData: FormData) {
 
   const forumId = String(formData.get("forumId") ?? "");
   const userId = String(formData.get("userId") ?? "");
-  const role = String(formData.get("role") ?? "PARTICIPANT") as ForumRole;
-  const currentUser = await requireCurrentUser();
-  const actingUserId = currentUser.id;
+  await requireSystemAdmin();
 
   if (!forumId || !userId) {
-    throw new Error("必須項目が不足しています。");
+    throw new AppError("INVALID_INPUT", "必須項目が不足しています。");
   }
 
-  await assertAdminMembership(forumId, actingUserId);
+  await assertForumExists(forumId);
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
   });
 
   if (!user || user.status !== "ACTIVE") {
-    throw new Error("有効なユーザーのみ追加できます。");
+    throw new AppError("INVALID_INPUT", "有効なユーザーのみ追加できます。");
   }
 
   await prisma.forumMember.upsert({
@@ -156,72 +143,42 @@ export async function addForumMember(formData: FormData) {
       },
     },
     update: {
-      role,
+      role: "PARTICIPANT",
     },
     create: {
       forumId,
       userId,
-      role,
+      role: "PARTICIPANT",
     },
   });
 
   revalidateForumPaths(forumId);
 }
 
-export async function updateForumMemberRole(formData: FormData) {
+export async function addForumMemberAction(
+  _previousState: FormActionState,
+  formData: FormData,
+): Promise<FormActionState> {
   "use server";
 
-  const forumId = String(formData.get("forumId") ?? "");
-  const userId = String(formData.get("userId") ?? "");
-  const role = String(formData.get("role") ?? "") as ForumRole;
-  const currentUser = await requireCurrentUser();
-  const actingUserId = currentUser.id;
+  try {
+    await addForumMember(formData);
 
-  if (!forumId || !userId || !role) {
-    throw new Error("必須項目が不足しています。");
-  }
-
-  await assertAdminMembership(forumId, actingUserId);
-
-  const targetMembership = await prisma.forumMember.findUnique({
-    where: {
-      forumId_userId: {
-        forumId,
-        userId,
-      },
-    },
-  });
-
-  if (!targetMembership) {
-    throw new Error("対象の参加者が見つかりません。");
-  }
-
-  if (targetMembership.role === "ADMIN" && role !== "ADMIN") {
-    const adminCount = await prisma.forumMember.count({
-      where: {
-        forumId,
-        role: "ADMIN",
-      },
-    });
-
-    if (adminCount <= 1) {
-      throw new Error("最後の管理者は変更できません。");
+    return {
+      ok: true,
+      message: "参加者を追加しました。",
+    };
+  } catch (error) {
+    if (isAppError(error)) {
+      return {
+        ok: false,
+        code: error.code,
+        message: error.message,
+      };
     }
+
+    throw error;
   }
-
-  await prisma.forumMember.update({
-    where: {
-      forumId_userId: {
-        forumId,
-        userId,
-      },
-    },
-    data: {
-      role,
-    },
-  });
-
-  revalidateForumPaths(forumId);
 }
 
 export async function removeForumMember(formData: FormData) {
@@ -229,14 +186,13 @@ export async function removeForumMember(formData: FormData) {
 
   const forumId = String(formData.get("forumId") ?? "");
   const userId = String(formData.get("userId") ?? "");
-  const currentUser = await requireCurrentUser();
-  const actingUserId = currentUser.id;
+  const currentUser = await requireSystemAdmin();
 
   if (!forumId || !userId) {
     throw new Error("必須項目が不足しています。");
   }
 
-  await assertAdminMembership(forumId, actingUserId);
+  await assertForumExists(forumId);
 
   const targetMembership = await prisma.forumMember.findUnique({
     where: {
@@ -251,17 +207,8 @@ export async function removeForumMember(formData: FormData) {
     throw new Error("対象の参加者が見つかりません。");
   }
 
-  if (targetMembership.role === "ADMIN") {
-    const adminCount = await prisma.forumMember.count({
-      where: {
-        forumId,
-        role: "ADMIN",
-      },
-    });
-
-    if (adminCount <= 1) {
-      throw new Error("最後の管理者は削除できません。");
-    }
+  if (userId === currentUser.id) {
+    throw new AppError("FORBIDDEN", "自分自身をフォーラムから外すことはできません。");
   }
 
   await prisma.forumMember.delete({
@@ -281,15 +228,14 @@ export async function createInvitation(formData: FormData) {
 
   const forumId = String(formData.get("forumId") ?? "");
   const email = normalizeEmail(formData.get("email"));
-  const role = String(formData.get("role") ?? "PARTICIPANT") as ForumRole;
-  const currentUser = await requireCurrentUser();
+  const currentUser = await requireSystemAdmin();
   const actingUserId = currentUser.id;
 
   if (!forumId || !email) {
     throw new AppError("INVALID_INPUT", "必須項目が不足しています。");
   }
 
-  await assertAdminMembership(forumId, actingUserId);
+  await assertForumExists(forumId);
 
   const existingUser = await prisma.user.findUnique({
     where: { email },
@@ -323,7 +269,7 @@ export async function createInvitation(formData: FormData) {
     data: {
       forumId,
       email,
-      role,
+      role: "PARTICIPANT",
       token: randomBytes(24).toString("hex"),
       status: "PENDING",
       expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7),
@@ -362,14 +308,13 @@ export async function cancelInvitation(formData: FormData) {
 
   const forumId = String(formData.get("forumId") ?? "");
   const invitationId = String(formData.get("invitationId") ?? "");
-  const currentUser = await requireCurrentUser();
-  const actingUserId = currentUser.id;
+  await requireSystemAdmin();
 
   if (!forumId || !invitationId) {
     throw new AppError("INVALID_INPUT", "必須項目が不足しています。");
   }
 
-  await assertAdminMembership(forumId, actingUserId);
+  await assertForumExists(forumId);
 
   const invitation = await prisma.invitation.findUnique({
     where: { id: invitationId },

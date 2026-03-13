@@ -63,17 +63,8 @@ export function InvitationCreateForm({
           type="email"
         />
       </div>
-      <div className={ui.form.group}>
-        <label className={ui.text.label} htmlFor="invite-role">
-          ロール
-        </label>
-        <select className={ui.form.select} defaultValue="PARTICIPANT" id="invite-role" name="role">
-          <option value="PARTICIPANT">PARTICIPANT</option>
-          <option value="ADMIN">ADMIN</option>
-        </select>
-      </div>
       <p className={ui.text.body}>
-        既存ユーザーには招待できません。既存アカウントは参加者管理から追加します。
+        招待で追加されるユーザーは、アクティベーション後にこのフォーラムの参加者になります。
       </p>
       {state.message ? (
         <div className="grid gap-1">

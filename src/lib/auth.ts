@@ -108,7 +108,6 @@ export async function getCurrentUser() {
   const payload = decodeSession(sessionCookie);
 
   if (!payload || payload.expiresAt <= Date.now()) {
-    cookieStore.delete(SESSION_COOKIE_NAME);
     return null;
   }
 
@@ -118,12 +117,12 @@ export async function getCurrentUser() {
       id: true,
       displayName: true,
       email: true,
+      systemRole: true,
       status: true,
     },
   });
 
   if (!user || user.status !== "ACTIVE") {
-    cookieStore.delete(SESSION_COOKIE_NAME);
     return null;
   }
 
@@ -135,6 +134,20 @@ export async function requireCurrentUser() {
 
   if (!user) {
     redirect("/login" as Route);
+  }
+
+  return user;
+}
+
+export function isSystemAdmin(user: { systemRole: string }) {
+  return user.systemRole === "ADMIN";
+}
+
+export async function requireSystemAdmin() {
+  const user = await requireCurrentUser();
+
+  if (!isSystemAdmin(user)) {
+    throw new AppError("FORBIDDEN", "全体管理者のみ操作できます。");
   }
 
   return user;

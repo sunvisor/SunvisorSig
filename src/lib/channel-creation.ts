@@ -1,7 +1,9 @@
 import type { Route } from "next";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { requireCurrentUser } from "@/lib/auth";
+import { requireSystemAdmin } from "@/lib/auth";
+import { initialFormActionState, type FormActionState } from "@/lib/action-state";
+import { AppError, isAppError } from "@/lib/app-error";
 import { prisma } from "@/lib/prisma";
 
 export async function createChannel(formData: FormData) {
@@ -11,24 +13,20 @@ export async function createChannel(formData: FormData) {
   const name = String(formData.get("name") ?? "").trim();
   const descriptionValue = String(formData.get("description") ?? "").trim();
   const description = descriptionValue.length > 0 ? descriptionValue : null;
-  const currentUser = await requireCurrentUser();
+  const currentUser = await requireSystemAdmin();
   const createdByUserId = currentUser.id;
 
   if (!forumId || !name) {
-    throw new Error("必須項目が不足しています。");
+    throw new AppError("INVALID_INPUT", "必須項目が不足しています。");
   }
 
-  const membership = await prisma.forumMember.findUnique({
-    where: {
-      forumId_userId: {
-        forumId,
-        userId: createdByUserId,
-      },
-    },
+  const forum = await prisma.forum.findUnique({
+    where: { id: forumId },
+    select: { id: true },
   });
 
-  if (!membership || membership.role !== "ADMIN") {
-    throw new Error("管理者のみチャンネルを作成できます。");
+  if (!forum) {
+    throw new AppError("INVALID_INPUT", "対象のフォーラムが見つかりません。");
   }
 
   const channel = await prisma.channel.create({
@@ -44,4 +42,29 @@ export async function createChannel(formData: FormData) {
   revalidatePath(`/forums/${forumId}`);
   revalidatePath(`/forums/${forumId}/channels/${channel.id}`);
   redirect(`/forums/${forumId}/channels/${channel.id}` as Route);
+}
+
+export { initialFormActionState as initialChannelActionState };
+
+export async function createChannelAction(
+  _previousState: FormActionState,
+  formData: FormData,
+): Promise<FormActionState> {
+  "use server";
+
+  try {
+    await createChannel(formData);
+  } catch (error) {
+    if (isAppError(error)) {
+      return {
+        ok: false,
+        code: error.code,
+        message: error.message,
+      };
+    }
+
+    throw error;
+  }
+
+  return initialFormActionState;
 }

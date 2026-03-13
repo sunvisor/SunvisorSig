@@ -3,9 +3,9 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ForumShell } from "@/components/forum-shell";
 import { EmptyState, MetadataRow, PrimaryLink, SectionCard } from "@/components/forum-ui";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, isSystemAdmin } from "@/lib/auth";
 import { formatDateTime } from "@/lib/date-time";
-import { getForum, isForumAdmin, isForumMember } from "@/lib/forum-data";
+import { getForum, isForumMember } from "@/lib/forum-data";
 import { getForumHeroStyle, getForumPageStyle } from "@/lib/forum-theme";
 import { ui } from "@/lib/ui-classes";
 
@@ -29,8 +29,6 @@ export default async function ForumPage({ params }: ForumPageProps) {
     notFound();
   }
 
-  const isAdmin = isForumAdmin(forum, currentUser.id);
-
   return (
     <ForumShell
       eyebrow="Forum"
@@ -43,7 +41,7 @@ export default async function ForumPage({ params }: ForumPageProps) {
         { label: forum.name },
       ]}
       actions={
-        isAdmin ? (
+        isSystemAdmin(currentUser) ? (
           <>
             <PrimaryLink href={`/forums/${forum.id}/settings` as Route}>フォーラム設定</PrimaryLink>
             <PrimaryLink href={`/forums/${forum.id}/channels/new` as Route}>チャンネル作成</PrimaryLink>
@@ -87,9 +85,7 @@ export default async function ForumPage({ params }: ForumPageProps) {
                 className={`${ui.surface.mutedCard} p-4`}
               >
                 <p className="theme-text font-medium">{member.user.displayName}</p>
-                <p className={`mt-1 ${ui.text.meta}`}>
-                  {member.role}
-                </p>
+                <p className={`mt-1 ${ui.text.meta}`}>{member.user.email ?? "メール未設定"}</p>
               </div>
             ))}
           </div>

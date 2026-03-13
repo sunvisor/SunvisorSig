@@ -1,9 +1,9 @@
 import type { Route } from "next";
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { ForumForm } from "@/components/forum-form";
 import { ForumShell } from "@/components/forum-shell";
 import { PrimaryLink, SectionCard } from "@/components/forum-ui";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, isSystemAdmin } from "@/lib/auth";
 import { createForum } from "@/lib/forum-management";
 
 export default async function NewForumPage() {
@@ -13,11 +13,15 @@ export default async function NewForumPage() {
     redirect("/login");
   }
 
+  if (!isSystemAdmin(currentUser)) {
+    notFound();
+  }
+
   return (
     <ForumShell
       eyebrow="Forum"
       title="フォーラム作成"
-      description="顧客向けの新しいフォーラムを作成し、管理者とカラーテーマを設定します。"
+      description="顧客向けの新しいフォーラムを作成し、参加者とカラーテーマを設定します。"
       breadcrumbs={[
         { href: "/forums" as Route, label: "Forums" },
         { label: "New Forum" },

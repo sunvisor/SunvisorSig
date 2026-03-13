@@ -13,8 +13,12 @@ enum UserStatus {
   SUSPENDED
 }
 
-enum ForumRole {
+enum SystemRole {
   ADMIN
+  USER
+}
+
+enum ForumRole {
   PARTICIPANT
 }
 
@@ -35,6 +39,7 @@ model User {
   displayName        String
   email              String?       @unique
   passwordHash       String?
+  systemRole         SystemRole    @default(USER)
   status             UserStatus    @default(INVITED)
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt
