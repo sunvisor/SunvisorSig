@@ -1,5 +1,6 @@
 import { revalidatePath } from "next/cache";
 import { requireCurrentUser } from "@/lib/auth";
+import { publishChannelActivity, publishPostActivity } from "@/lib/notification-events";
 import { deleteCommentById } from "@/lib/deletion-service";
 
 export async function deleteComment(formData: FormData) {
@@ -23,6 +24,9 @@ export async function deleteComment(formData: FormData) {
     commentId,
     actingUserId: currentUser.id,
   });
+
+  publishPostActivity(postId);
+  publishChannelActivity(channelId);
 
   revalidatePath(`/forums/${forumId}/channels/${channelId}`);
   revalidatePath(`/forums/${forumId}/channels/${channelId}/posts/${postId}`);

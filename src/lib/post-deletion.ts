@@ -2,6 +2,7 @@ import type { Route } from "next";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { requireCurrentUser } from "@/lib/auth";
+import { publishChannelActivity } from "@/lib/notification-events";
 import { deletePostById } from "@/lib/deletion-service";
 
 export async function deletePost(formData: FormData) {
@@ -23,6 +24,8 @@ export async function deletePost(formData: FormData) {
     postId,
     actingUserId: currentUser.id,
   });
+
+  publishChannelActivity(channelId);
 
   revalidatePath("/forums");
   revalidatePath(`/forums/${forumId}`);

@@ -222,13 +222,11 @@ export async function createCommentNotifications(params: {
     })),
   );
 
-  if (notifications.length === 0) {
-    return [];
+  if (notifications.length > 0) {
+    await client.notification.createMany({
+      data: notifications,
+    });
   }
-
-  await client.notification.createMany({
-    data: notifications,
-  });
 
   const notifiedUserIds = notifications.map((notification) => notification.userId);
   const subscribers = notifyThreadParticipants

@@ -5,7 +5,10 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { buildDedupedFilename } from "@/lib/attachment-filename";
 import { requireCurrentUser } from "@/lib/auth";
-import { publishNotificationRefresh } from "@/lib/notification-events";
+import {
+  publishChannelActivity,
+  publishNotificationRefresh,
+} from "@/lib/notification-events";
 import { createPostMentionNotifications } from "@/lib/notification-service";
 import { prisma } from "@/lib/prisma";
 
@@ -100,6 +103,7 @@ export async function createPost(formData: FormData) {
   });
 
   publishNotificationRefresh(notifiedUserIds);
+  publishChannelActivity(channelId);
 
   revalidatePath("/forums");
   revalidatePath(`/forums/${forumId}`);

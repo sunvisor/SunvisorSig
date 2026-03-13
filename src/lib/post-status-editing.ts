@@ -5,7 +5,11 @@ import { revalidatePath } from "next/cache";
 import { initialFormActionState, type FormActionState } from "@/lib/action-state";
 import { requireCurrentUser } from "@/lib/auth";
 import { AppError, isAppError } from "@/lib/app-error";
-import { publishNotificationRefresh } from "@/lib/notification-events";
+import {
+  publishChannelActivity,
+  publishNotificationRefresh,
+  publishPostActivity,
+} from "@/lib/notification-events";
 import { createCommentNotifications } from "@/lib/notification-service";
 import { getPostStatusLabel } from "@/lib/post-status";
 import { prisma } from "@/lib/prisma";
@@ -92,6 +96,8 @@ export async function updatePostStatus(formData: FormData) {
   });
 
   publishNotificationRefresh(notifiedUserIds);
+  publishPostActivity(postId);
+  publishChannelActivity(channelId);
 
   revalidatePath(`/forums/${forumId}/channels/${channelId}`);
   revalidatePath(`/forums/${forumId}/channels/${channelId}/posts/${postId}`);

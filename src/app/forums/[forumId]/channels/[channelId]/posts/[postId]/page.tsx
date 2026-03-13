@@ -1,13 +1,12 @@
 import type { Route } from "next";
 import { notFound, redirect } from "next/navigation";
 import { AttachmentLink } from "@/components/attachment-link";
-import { CommentInlineEditor } from "@/components/comment-inline-editor";
 import { CommentComposer } from "@/components/comment-composer";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { ForumShell } from "@/components/forum-shell";
 import { NotificationReadTracker } from "@/components/notification-read-tracker";
+import { PostCommentsPanel } from "@/components/post-comments-panel";
 import {
-  EmptyState,
   MetadataRow,
   PrimaryLink,
   SectionCard,
@@ -29,9 +28,9 @@ import {
   updatePostStatusAction,
 } from "@/lib/post-status-editing";
 import { formatDateTime } from "@/lib/date-time";
+import { serializeComment } from "@/lib/activity-presenter";
 import { getPost, isForumMember } from "@/lib/forum-data";
 import { getForumHeroStyle, getForumPageStyle } from "@/lib/forum-theme";
-import { markPostNotificationsAsRead } from "@/lib/notification-service";
 import { ui } from "@/lib/ui-classes";
 
 type PostPageProps = Readonly<{
@@ -57,8 +56,6 @@ export default async function PostPage({ params }: PostPageProps) {
   if (!isForumMember(post.channel.forum, currentUser.id)) {
     notFound();
   }
-
-  await markPostNotificationsAsRead(currentUser.id, postId);
 
   const isAdmin = isSystemAdmin(currentUser);
 
@@ -117,90 +114,17 @@ export default async function PostPage({ params }: PostPageProps) {
             />
           </SectionCard>
           <SectionCard title="コメント">
-            {post.comments.length === 0 ? (
-              <EmptyState
-                title="コメントがありません"
-                description="この投稿にはまだコメントが付いていません。"
-              />
-            ) : (
-              <div className="grid gap-4">
-                {post.comments.map((comment) => (
-                  comment.type === "STATUS_CHANGE" ? (
-                    <article key={comment.id} className="py-1 text-center">
-                      <p className="text-sm text-slate-500">
-                        {comment.bodyMarkdown}
-                      </p>
-                      <p className="mt-1 text-xs uppercase tracking-[0.2em] text-slate-400">
-                        {formatDateTime(comment.createdAt)}
-                      </p>
-                    </article>
-                  ) : (
-                    <article
-                      key={comment.id}
-                      className="rounded-2xl border border-slate-200 bg-slate-50 p-5"
-                    >
-                      <div className="flex items-center justify-between gap-4">
-                        <div>
-                          <p className="font-medium text-slate-950">
-                            {comment.authorUser.displayName}
-                          </p>
-                          <p className="mt-1 text-xs uppercase tracking-[0.2em] text-slate-400">
-                            {formatDateTime(comment.createdAt)}
-                          </p>
-                        </div>
-                        <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
-                          Files {comment.attachments.length}
-                        </p>
-                      </div>
-                      <div className="mt-4">
-                        <CommentInlineEditor
-                          action={updateCommentAction}
-                          attachments={comment.attachments}
-                          bodyMarkdown={comment.bodyMarkdown}
-                          channelId={channelId}
-                          commentId={comment.id}
-                          editable={comment.authorUserId === currentUser.id}
-                          forumId={forumId}
-                          initialState={initialCommentEditActionState}
-                          postId={postId}
-                          trailingActions={
-                            comment.authorUserId === currentUser.id || isAdmin ? (
-                              <form action={deleteComment}>
-                                <input name="forumId" type="hidden" value={forumId} />
-                                <input name="channelId" type="hidden" value={channelId} />
-                                <input name="postId" type="hidden" value={postId} />
-                                <input name="commentId" type="hidden" value={comment.id} />
-                                <ConfirmSubmitButton
-                                  ariaLabel="コメントを削除"
-                                  className={ui.button.iconDanger}
-                                  description="添付ファイルがある場合は、その情報も削除待ちデータへ退避されます。"
-                                  icon="trash"
-                                  message="このコメントを削除しますか？"
-                                />
-                              </form>
-                            ) : null
-                          }
-                        />
-                      </div>
-                      {comment.attachments.length > 0 ? (
-                        <div className="mt-4 grid gap-3">
-                          {comment.attachments.map((attachment) => (
-                            <AttachmentLink
-                              compact
-                              key={attachment.id}
-                              filename={attachment.originalFilename}
-                              mimeType={attachment.mimeType}
-                              sizeBytes={attachment.sizeBytes}
-                              storagePath={attachment.storagePath}
-                            />
-                          ))}
-                        </div>
-                      ) : null}
-                    </article>
-                  )
-                ))}
-              </div>
-            )}
+            <PostCommentsPanel
+              channelId={channelId}
+              comments={post.comments.map(serializeComment)}
+              currentUserId={currentUser.id}
+              deleteCommentAction={deleteComment}
+              forumId={forumId}
+              isAdmin={isAdmin}
+              postId={postId}
+              updateCommentAction={updateCommentAction}
+              updateCommentInitialState={initialCommentEditActionState}
+            />
             <CommentComposer
               action={createCommentAction}
               channelId={channelId}

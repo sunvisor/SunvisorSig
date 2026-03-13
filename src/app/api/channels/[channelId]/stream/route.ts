@@ -1,11 +1,40 @@
 import { getCurrentUser } from "@/lib/auth";
-import { subscribeToNotificationRefresh } from "@/lib/notification-events";
+import { subscribeToChannelActivity } from "@/lib/notification-events";
+import { prisma } from "@/lib/prisma";
 
-export async function GET(request: Request) {
+type RouteContext = {
+  params: Promise<{
+    channelId: string;
+  }>;
+};
+
+export async function GET(request: Request, { params }: RouteContext) {
   const user = await getCurrentUser();
 
   if (!user) {
     return new Response("Unauthorized", { status: 401 });
+  }
+
+  const { channelId } = await params;
+  const channel = await prisma.channel.findUnique({
+    where: { id: channelId },
+  });
+
+  if (!channel) {
+    return new Response("Not found", { status: 404 });
+  }
+
+  const membership = await prisma.forumMember.findUnique({
+    where: {
+      forumId_userId: {
+        forumId: channel.forumId,
+        userId: user.id,
+      },
+    },
+  });
+
+  if (!membership) {
+    return new Response("Not found", { status: 404 });
   }
 
   let cleanup = () => {};
@@ -52,7 +81,7 @@ export async function GET(request: Request) {
           cleanup();
         }
       }, 15000);
-      unsubscribe = subscribeToNotificationRefresh(user.id, send);
+      unsubscribe = subscribeToChannelActivity(channelId, send);
       request.signal.addEventListener("abort", cleanup);
 
       controller.enqueue(encoder.encode("retry: 3000\n\n"));

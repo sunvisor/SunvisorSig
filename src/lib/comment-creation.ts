@@ -6,7 +6,11 @@ import { redirect } from "next/navigation";
 import { initialFormActionState, type FormActionState } from "@/lib/action-state";
 import { AppError, isAppError } from "@/lib/app-error";
 import { requireCurrentUser } from "@/lib/auth";
-import { publishNotificationRefresh } from "@/lib/notification-events";
+import {
+  publishChannelActivity,
+  publishNotificationRefresh,
+  publishPostActivity,
+} from "@/lib/notification-events";
 import { createCommentNotifications } from "@/lib/notification-service";
 import { prisma } from "@/lib/prisma";
 import { buildDedupedFilename } from "@/lib/attachment-filename";
@@ -109,6 +113,8 @@ export async function createComment(formData: FormData) {
   });
 
   publishNotificationRefresh(notifiedUserIds);
+  publishPostActivity(postId);
+  publishChannelActivity(channelId);
 
   revalidatePath(`/forums/${forumId}/channels/${channelId}/posts/${postId}`);
   redirect(`/forums/${forumId}/channels/${channelId}/posts/${postId}` as Route);
