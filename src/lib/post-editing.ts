@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { initialFormActionState, type FormActionState } from "@/lib/action-state";
 import { requireCurrentUser } from "@/lib/auth";
 import { AppError, isAppError } from "@/lib/app-error";
+import { publishNotificationRefresh } from "@/lib/notification-events";
 import { createPostMentionNotifications } from "@/lib/notification-service";
 import { prisma } from "@/lib/prisma";
 
@@ -46,13 +47,15 @@ export async function updatePost(formData: FormData) {
     },
   });
 
-  await createPostMentionNotifications({
+  const notifiedUserIds = await createPostMentionNotifications({
     forumId,
     postId: post.id,
     actorUserId: currentUser.id,
     actorDisplayName: currentUser.displayName,
     bodyMarkdown,
   });
+
+  publishNotificationRefresh(notifiedUserIds);
 
   revalidatePath(`/forums/${forumId}/channels/${channelId}`);
   revalidatePath(`/forums/${forumId}/channels/${channelId}/posts/${postId}`);

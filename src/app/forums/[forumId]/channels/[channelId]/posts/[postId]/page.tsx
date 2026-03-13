@@ -5,6 +5,7 @@ import { CommentInlineEditor } from "@/components/comment-inline-editor";
 import { CommentComposer } from "@/components/comment-composer";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { ForumShell } from "@/components/forum-shell";
+import { NotificationReadTracker } from "@/components/notification-read-tracker";
 import {
   EmptyState,
   MetadataRow,
@@ -83,6 +84,7 @@ export default async function PostPage({ params }: PostPageProps) {
         </PrimaryLink>
       }
     >
+      <NotificationReadTracker postId={postId} />
       <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
         <div className="grid gap-6">
           <SectionCard title="本文">

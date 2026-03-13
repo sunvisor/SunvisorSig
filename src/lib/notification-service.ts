@@ -1,4 +1,5 @@
 import type { Prisma, PrismaClient } from "@prisma/client";
+import { publishNotificationRefresh } from "@/lib/notification-events";
 import { prisma } from "@/lib/prisma";
 
 const mentionPattern = /(^|[^\w])@([a-zA-Z0-9_-]+)/g;
@@ -59,7 +60,7 @@ export async function createPostMentionNotifications(params: {
   actorDisplayName: string;
   bodyMarkdown: string;
   client?: NotificationClient;
-}) {
+}): Promise<string[]> {
   const client = params.client ?? prisma;
   const mentionTargets = await getMentionTargets(
     client,
@@ -69,7 +70,7 @@ export async function createPostMentionNotifications(params: {
   );
 
   if (mentionTargets.length === 0) {
-    return;
+    return [];
   }
 
   const existingNotifications = await client.notification.findMany({
@@ -85,7 +86,7 @@ export async function createPostMentionNotifications(params: {
   const newTargets = mentionTargets.filter((target) => !existingUserIds.has(target.id));
 
   if (newTargets.length === 0) {
-    return;
+    return [];
   }
 
   await client.notification.createMany({
@@ -97,6 +98,8 @@ export async function createPostMentionNotifications(params: {
       message: `${params.actorDisplayName} が投稿であなたをメンションしました。`,
     })),
   });
+
+  return newTargets.map((target) => target.id);
 }
 
 export async function createCommentNotifications(params: {
@@ -109,7 +112,7 @@ export async function createCommentNotifications(params: {
   bodyMarkdown: string;
   notifyThreadParticipants?: boolean;
   client?: NotificationClient;
-}) {
+}): Promise<string[]> {
   const client = params.client ?? prisma;
   const notifyThreadParticipants = params.notifyThreadParticipants ?? true;
   const mentionTargets = await getMentionTargets(
@@ -197,12 +200,14 @@ export async function createCommentNotifications(params: {
   );
 
   if (notifications.length === 0) {
-    return;
+    return [];
   }
 
   await client.notification.createMany({
     data: notifications,
   });
+
+  return notifications.map((notification) => notification.userId);
 }
 
 export async function getUnreadNotifications(userId: string) {
@@ -240,4 +245,6 @@ export async function markPostNotificationsAsRead(userId: string, postId: string
       readAt: new Date(),
     },
   });
+
+  publishNotificationRefresh([userId]);
 }

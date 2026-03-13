@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { initialFormActionState, type FormActionState } from "@/lib/action-state";
 import { AppError, isAppError } from "@/lib/app-error";
+import { buildUniqueMentionHandle } from "@/lib/mention-handle";
 import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/password";
 
@@ -86,11 +87,16 @@ export async function activateInvitation(formData: FormData) {
     throw new AppError("USER_ALREADY_EXISTS", "このメールアドレスのユーザーはすでに存在します。");
   }
 
+  const mentionHandle = await buildUniqueMentionHandle(
+    invitation.email.split("@")[0] ?? displayName,
+  );
+
   await prisma.$transaction(async (tx) => {
     const user = await tx.user.create({
       data: {
         displayName,
         email: invitation.email,
+        mentionHandle,
         passwordHash: hashPassword(password),
         status: "ACTIVE",
       },

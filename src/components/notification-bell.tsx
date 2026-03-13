@@ -1,30 +1,63 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Bell } from "lucide-react";
 import Link from "next/link";
-import type { Route } from "next";
 import { usePathname } from "next/navigation";
+import type { NotificationListItem } from "@/lib/notification-presenter";
 import { ui } from "@/lib/ui-classes";
 
-type NotificationItem = {
-  id: string;
-  message: string;
-  createdAtLabel: string;
-  href: Route;
-  forumName: string;
-  channelName: string;
-  postTitle: string;
-};
-
 type NotificationBellProps = Readonly<{
-  notifications: NotificationItem[];
+  notifications: NotificationListItem[];
 }>;
 
 export function NotificationBell({ notifications }: NotificationBellProps) {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
-  const visibleNotifications = notifications.filter(
+  const [items, setItems] = useState(notifications);
+
+  useEffect(() => {
+    setItems(notifications);
+  }, [notifications]);
+
+  const refreshNotifications = useCallback(async () => {
+    const response = await fetch("/api/notifications", {
+      credentials: "same-origin",
+      cache: "no-store",
+    });
+
+    if (!response.ok) {
+      return;
+    }
+
+    const data = (await response.json()) as {
+      notifications: NotificationListItem[];
+    };
+
+    setItems(data.notifications);
+  }, []);
+
+  useEffect(() => {
+    void refreshNotifications();
+  }, [pathname, refreshNotifications]);
+
+  useEffect(() => {
+    const eventSource = new EventSource("/api/notifications/stream");
+    const handleRefresh = () => {
+      void refreshNotifications();
+    };
+
+    eventSource.addEventListener("refresh", handleRefresh);
+    window.addEventListener("notifications:refresh", handleRefresh);
+
+    return () => {
+      eventSource.removeEventListener("refresh", handleRefresh);
+      eventSource.close();
+      window.removeEventListener("notifications:refresh", handleRefresh);
+    };
+  }, [refreshNotifications]);
+
+  const visibleNotifications = items.filter(
     (notification) => notification.href !== pathname,
   );
 
