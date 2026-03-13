@@ -1,3 +1,4 @@
+import type { Route } from "next";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { deletePostById } from "@/lib/deletion-service";
@@ -18,5 +19,5 @@ export async function deletePost(formData: FormData) {
   revalidatePath("/forums");
   revalidatePath(`/forums/${forumId}`);
   revalidatePath(`/forums/${forumId}/channels/${channelId}`);
-  redirect(`/forums/${forumId}/channels/${channelId}`);
+  redirect(`/forums/${forumId}/channels/${channelId}` as Route);
 }

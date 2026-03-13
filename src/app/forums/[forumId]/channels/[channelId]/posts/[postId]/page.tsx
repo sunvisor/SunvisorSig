@@ -42,10 +42,10 @@ export default async function PostPage({ params }: PostPageProps) {
       themeStyle={getForumPageStyle(post.channel.forum)}
       heroStyle={getForumHeroStyle(post.channel.forum)}
       breadcrumbs={[
-        { href: "/forums", label: "Forums" },
-        { href: `/forums/${post.channel.forum.id}`, label: post.channel.forum.name },
+        { href: "/forums" as Route, label: "Forums" },
+        { href: `/forums/${post.channel.forum.id}` as Route, label: post.channel.forum.name },
         {
-          href: `/forums/${post.channel.forum.id}/channels/${post.channel.id}`,
+          href: `/forums/${post.channel.forum.id}/channels/${post.channel.id}` as Route,
           label: post.channel.name,
         },
         { label: post.title },

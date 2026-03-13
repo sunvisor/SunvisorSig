@@ -3,14 +3,16 @@ import { notFound } from "next/navigation";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { ForumForm } from "@/components/forum-form";
 import { ForumShell } from "@/components/forum-shell";
+import { InvitationCreateForm } from "@/components/invitation-create-form";
 import { PrimaryLink, SectionCard } from "@/components/forum-ui";
 import { getActiveUsers, getForum } from "@/lib/forum-data";
 import { getForumHeroStyle, getForumPageStyle } from "@/lib/forum-theme";
 import {
   addForumMember,
   cancelInvitation,
-  createInvitation,
   removeForumMember,
+  createInvitationAction,
+  initialInvitationActionState,
   updateForum,
   updateForumMemberRole,
 } from "@/lib/forum-management";
@@ -49,8 +51,8 @@ export default async function ForumSettingsPage({ params }: ForumSettingsPagePro
       themeStyle={getForumPageStyle(forum)}
       heroStyle={getForumHeroStyle(forum)}
       breadcrumbs={[
-        { href: "/forums", label: "Forums" },
-        { href: `/forums/${forum.id}`, label: forum.name },
+        { href: "/forums" as Route, label: "Forums" },
+        { href: `/forums/${forum.id}` as Route, label: forum.name },
         { label: "Settings" },
       ]}
       actions={<PrimaryLink href={`/forums/${forum.id}` as Route}>フォーラムへ戻る</PrimaryLink>}
@@ -179,40 +181,12 @@ export default async function ForumSettingsPage({ params }: ForumSettingsPagePro
       </SectionCard>
       <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
         <SectionCard title="招待作成">
-          <form action={createInvitation} className={ui.form.layout}>
-            <input name="forumId" type="hidden" value={forum.id} />
-            <input name="actingUserId" type="hidden" value={actingAdminId} />
-            <div className={ui.form.group}>
-              <label className={ui.text.label} htmlFor="invite-email">
-                メールアドレス
-              </label>
-              <input
-                className={ui.form.input}
-                id="invite-email"
-                name="email"
-                placeholder="new-user@example.com"
-                required
-                type="email"
-              />
-            </div>
-            <div className={ui.form.group}>
-              <label className={ui.text.label} htmlFor="invite-role">
-                ロール
-              </label>
-              <select className={ui.form.select} defaultValue="PARTICIPANT" id="invite-role" name="role">
-                <option value="PARTICIPANT">PARTICIPANT</option>
-                <option value="ADMIN">ADMIN</option>
-              </select>
-            </div>
-            <p className={ui.text.body}>
-              既存ユーザーには招待できません。既存アカウントは参加者管理から追加します。
-            </p>
-            <div className={ui.form.actions}>
-              <button className={ui.button.primary} type="submit">
-                招待を作成
-              </button>
-            </div>
-          </form>
+          <InvitationCreateForm
+            action={createInvitationAction}
+            actingUserId={actingAdminId}
+            forumId={forum.id}
+            initialState={initialInvitationActionState}
+          />
         </SectionCard>
         <SectionCard title="招待一覧">
           {forum.invitations.length === 0 ? (

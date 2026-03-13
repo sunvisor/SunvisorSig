@@ -28,8 +28,8 @@ export default async function NewChannelPage({ params }: NewChannelPageProps) {
       themeStyle={getForumPageStyle(forum)}
       heroStyle={getForumHeroStyle(forum)}
       breadcrumbs={[
-        { href: "/forums", label: "Forums" },
-        { href: `/forums/${forum.id}`, label: forum.name },
+        { href: "/forums" as Route, label: "Forums" },
+        { href: `/forums/${forum.id}` as Route, label: forum.name },
         { label: "New Channel" },
       ]}
       actions={<PrimaryLink href={`/forums/${forum.id}` as Route}>フォーラムへ戻る</PrimaryLink>}

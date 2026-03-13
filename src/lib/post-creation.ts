@@ -1,3 +1,4 @@
+import type { Route } from "next";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { redirect } from "next/navigation";
@@ -89,5 +90,5 @@ export async function createPost(formData: FormData) {
   revalidatePath(`/forums/${forumId}`);
   revalidatePath(`/forums/${forumId}/channels/${channelId}`);
   revalidatePath(`/forums/${forumId}/channels/${channelId}/posts/${post.id}`);
-  redirect(`/forums/${forumId}/channels/${channelId}/posts/${post.id}`);
+  redirect(`/forums/${forumId}/channels/${channelId}/posts/${post.id}` as Route);
 }

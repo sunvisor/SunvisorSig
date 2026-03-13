@@ -1,5 +1,7 @@
+import type { Route } from "next";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { AppError } from "@/lib/app-error";
 import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/password";
 
@@ -8,15 +10,24 @@ function getActivationErrorMessage(invitation: {
   expiresAt: Date;
 }) {
   if (invitation.status === "ACCEPTED") {
-    return "この招待はすでに利用されています。";
+    return {
+      code: "INVITATION_ACCEPTED" as const,
+      message: "この招待はすでに利用されています。",
+    };
   }
 
   if (invitation.status === "CANCELED") {
-    return "この招待は取り消されています。";
+    return {
+      code: "INVITATION_CANCELED" as const,
+      message: "この招待は取り消されています。",
+    };
   }
 
   if (invitation.status === "EXPIRED" || invitation.expiresAt <= new Date()) {
-    return "この招待は有効期限切れです。";
+    return {
+      code: "INVITATION_EXPIRED" as const,
+      message: "この招待は有効期限切れです。",
+    };
   }
 
   return null;
@@ -31,15 +42,15 @@ export async function activateInvitation(formData: FormData) {
   const passwordConfirmation = String(formData.get("passwordConfirmation") ?? "");
 
   if (!token || !displayName || !password || !passwordConfirmation) {
-    throw new Error("必須項目が不足しています。");
+    throw new AppError("INVALID_INPUT", "必須項目が不足しています。");
   }
 
   if (password !== passwordConfirmation) {
-    throw new Error("パスワードが一致しません。");
+    throw new AppError("PASSWORD_MISMATCH", "パスワードが一致しません。");
   }
 
   if (password.length < 8) {
-    throw new Error("パスワードは 8 文字以上で入力してください。");
+    throw new AppError("PASSWORD_TOO_SHORT", "パスワードは 8 文字以上で入力してください。");
   }
 
   const invitation = await prisma.invitation.findUnique({
@@ -50,12 +61,12 @@ export async function activateInvitation(formData: FormData) {
   });
 
   if (!invitation) {
-    throw new Error("招待が見つかりません。");
+    throw new AppError("INVITATION_NOT_FOUND", "招待が見つかりません。");
   }
 
-  const activationErrorMessage = getActivationErrorMessage(invitation);
+  const activationError = getActivationErrorMessage(invitation);
 
-  if (activationErrorMessage) {
+  if (activationError) {
     if (invitation.status === "PENDING" && invitation.expiresAt <= new Date()) {
       await prisma.invitation.update({
         where: { id: invitation.id },
@@ -63,7 +74,7 @@ export async function activateInvitation(formData: FormData) {
       });
     }
 
-    throw new Error(activationErrorMessage);
+    throw new AppError(activationError.code, activationError.message);
   }
 
   const existingUser = await prisma.user.findUnique({
@@ -71,7 +82,7 @@ export async function activateInvitation(formData: FormData) {
   });
 
   if (existingUser) {
-    throw new Error("このメールアドレスのユーザーはすでに存在します。");
+    throw new AppError("USER_ALREADY_EXISTS", "このメールアドレスのユーザーはすでに存在します。");
   }
 
   await prisma.$transaction(async (tx) => {
@@ -104,7 +115,7 @@ export async function activateInvitation(formData: FormData) {
   revalidatePath("/forums");
   revalidatePath(`/forums/${invitation.forumId}`);
   revalidatePath(`/forums/${invitation.forumId}/settings`);
-  redirect(`/activate/success?forumId=${invitation.forumId}`);
+  redirect(`/activate/success?forumId=${invitation.forumId}` as Route);
 }
 
 export async function getInvitationForActivation(token: string) {
@@ -119,10 +130,11 @@ export async function getInvitationForActivation(token: string) {
     return null;
   }
 
-  const activationErrorMessage = getActivationErrorMessage(invitation);
+  const activationError = getActivationErrorMessage(invitation);
 
   return {
     ...invitation,
-    activationErrorMessage,
+    activationErrorCode: activationError?.code ?? null,
+    activationErrorMessage: activationError?.message ?? null,
   };
 }

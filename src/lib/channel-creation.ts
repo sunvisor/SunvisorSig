@@ -1,3 +1,4 @@
+import type { Route } from "next";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
@@ -40,5 +41,5 @@ export async function createChannel(formData: FormData) {
   revalidatePath("/forums");
   revalidatePath(`/forums/${forumId}`);
   revalidatePath(`/forums/${forumId}/channels/${channel.id}`);
-  redirect(`/forums/${forumId}/channels/${channel.id}`);
+  redirect(`/forums/${forumId}/channels/${channel.id}` as Route);
 }

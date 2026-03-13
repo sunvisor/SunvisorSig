@@ -1,7 +1,9 @@
+import type { Route } from "next";
 import { randomBytes } from "node:crypto";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import { AppError, isAppError, type AppErrorCode } from "@/lib/app-error";
 import { getForumThemePreset } from "@/lib/forum-theme";
 import type { ForumRole, InvitationStatus } from "@prisma/client";
 
@@ -22,7 +24,7 @@ async function assertAdminMembership(forumId: string, userId: string) {
   });
 
   if (!membership || membership.role !== "ADMIN") {
-    throw new Error("管理者のみ操作できます。");
+    throw new AppError("FORBIDDEN", "管理者のみ操作できます。");
   }
 
   return membership;
@@ -37,6 +39,17 @@ function revalidateForumPaths(forumId: string) {
 function normalizeEmail(value: FormDataEntryValue | null) {
   return String(value ?? "").trim().toLowerCase();
 }
+
+export type InvitationActionState = {
+  ok: boolean;
+  code?: AppErrorCode;
+  message: string;
+};
+
+export const initialInvitationActionState: InvitationActionState = {
+  ok: false,
+  message: "",
+};
 
 export async function createForum(formData: FormData) {
   "use server";
@@ -76,7 +89,7 @@ export async function createForum(formData: FormData) {
   });
 
   revalidateForumPaths(forum.id);
-  redirect(`/forums/${forum.id}`);
+  redirect(`/forums/${forum.id}` as Route);
 }
 
 export async function updateForum(formData: FormData) {
@@ -106,7 +119,7 @@ export async function updateForum(formData: FormData) {
   });
 
   revalidateForumPaths(forumId);
-  redirect(`/forums/${forumId}`);
+  redirect(`/forums/${forumId}` as Route);
 }
 
 export async function addForumMember(formData: FormData) {
@@ -266,7 +279,7 @@ export async function createInvitation(formData: FormData) {
   const role = String(formData.get("role") ?? "PARTICIPANT") as ForumRole;
 
   if (!forumId || !actingUserId || !email) {
-    throw new Error("必須項目が不足しています。");
+    throw new AppError("INVALID_INPUT", "必須項目が不足しています。");
   }
 
   await assertAdminMembership(forumId, actingUserId);
@@ -276,7 +289,10 @@ export async function createInvitation(formData: FormData) {
   });
 
   if (existingUser) {
-    throw new Error("既存ユーザーです。参加者管理から追加してください。");
+    throw new AppError(
+      "USER_ALREADY_EXISTS",
+      "既存ユーザーです。参加者管理から追加してください。",
+    );
   }
 
   const existingInvitation = await prisma.invitation.findFirst({
@@ -290,7 +306,10 @@ export async function createInvitation(formData: FormData) {
   });
 
   if (existingInvitation) {
-    throw new Error("このメールアドレスには、すでに有効な招待があります。");
+    throw new AppError(
+      "INVITATION_ALREADY_EXISTS",
+      "このメールアドレスには、すでに有効な招待があります。",
+    );
   }
 
   await prisma.invitation.create({
@@ -308,6 +327,29 @@ export async function createInvitation(formData: FormData) {
   revalidateForumPaths(forumId);
 }
 
+export async function createInvitationAction(
+  _previousState: InvitationActionState,
+  formData: FormData,
+): Promise<InvitationActionState> {
+  "use server";
+
+  try {
+    await createInvitation(formData);
+
+    return {
+      ok: true,
+      code: undefined,
+      message: "招待を作成しました。",
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      code: isAppError(error) ? error.code : undefined,
+      message: error instanceof Error ? error.message : "招待の作成に失敗しました。",
+    };
+  }
+}
+
 export async function cancelInvitation(formData: FormData) {
   "use server";
 
@@ -316,7 +358,7 @@ export async function cancelInvitation(formData: FormData) {
   const invitationId = String(formData.get("invitationId") ?? "");
 
   if (!forumId || !actingUserId || !invitationId) {
-    throw new Error("必須項目が不足しています。");
+    throw new AppError("INVALID_INPUT", "必須項目が不足しています。");
   }
 
   await assertAdminMembership(forumId, actingUserId);
@@ -326,11 +368,11 @@ export async function cancelInvitation(formData: FormData) {
   });
 
   if (!invitation || invitation.forumId !== forumId) {
-    throw new Error("対象の招待が見つかりません。");
+    throw new AppError("INVITATION_NOT_FOUND", "対象の招待が見つかりません。");
   }
 
   if (invitation.status !== "PENDING") {
-    throw new Error("未処理の招待のみ取り消せます。");
+    throw new AppError("INVITATION_NOT_PENDING", "未処理の招待のみ取り消せます。");
   }
 
   await prisma.invitation.update({

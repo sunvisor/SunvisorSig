@@ -14,10 +14,10 @@ export default async function NewForumPage() {
       title="フォーラム作成"
       description="顧客向けの新しいフォーラムを作成し、管理者とカラーテーマを設定します。"
       breadcrumbs={[
-        { href: "/forums", label: "Forums" },
+        { href: "/forums" as Route, label: "Forums" },
         { label: "New Forum" },
       ]}
-      actions={<PrimaryLink href="/forums">フォーラム一覧へ戻る</PrimaryLink>}
+      actions={<PrimaryLink href={"/forums" as Route}>フォーラム一覧へ戻る</PrimaryLink>}
     >
       <SectionCard title="新規フォーラム">
         <ForumForm

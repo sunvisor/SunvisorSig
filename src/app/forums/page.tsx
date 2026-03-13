@@ -18,7 +18,7 @@ export default async function ForumsPage() {
       actions={
         <>
           <PrimaryLink href={"/forums/new" as Route}>フォーラム作成</PrimaryLink>
-          <PrimaryLink href="/forums">一覧を更新</PrimaryLink>
+          <PrimaryLink href={"/forums" as Route}>一覧を更新</PrimaryLink>
         </>
       }
     >

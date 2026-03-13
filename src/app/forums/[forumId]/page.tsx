@@ -28,7 +28,7 @@ export default async function ForumPage({ params }: ForumPageProps) {
       themeStyle={getForumPageStyle(forum)}
       heroStyle={getForumHeroStyle(forum)}
       breadcrumbs={[
-        { href: "/forums", label: "Forums" },
+        { href: "/forums" as Route, label: "Forums" },
         { label: forum.name },
       ]}
       actions={
