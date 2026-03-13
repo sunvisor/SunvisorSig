@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { ForumForm } from "@/components/forum-form";
 import { ForumMemberAddForm } from "@/components/forum-member-add-form";
+import { ForumMemberRemoveForm } from "@/components/forum-member-remove-form";
 import { ForumShell } from "@/components/forum-shell";
 import { InvitationCreateForm } from "@/components/invitation-create-form";
 import { PrimaryLink, SectionCard } from "@/components/forum-ui";
@@ -12,11 +13,12 @@ import { getForumHeroStyle, getForumPageStyle } from "@/lib/forum-theme";
 import {
   addForumMemberAction,
   cancelInvitation,
-  removeForumMember,
+  removeForumMemberAction,
   createInvitationAction,
+  initialForumActionState,
   initialForumMemberActionState,
   initialInvitationActionState,
-  updateForum,
+  updateForumAction,
 } from "@/lib/forum-management";
 import { formatDateTime } from "@/lib/date-time";
 import { ui } from "@/lib/ui-classes";
@@ -67,9 +69,10 @@ export default async function ForumSettingsPage({ params }: ForumSettingsPagePro
       <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
         <SectionCard title="設定内容">
           <ForumForm
-            action={updateForum}
+            action={updateForumAction}
             cancelHref={`/forums/${forum.id}` as Route}
             currentUserName={currentUser.displayName}
+            initialState={initialForumActionState}
             initialValues={{
               id: forum.id,
               name: forum.name,
@@ -119,17 +122,12 @@ export default async function ForumSettingsPage({ params }: ForumSettingsPagePro
                   {member.userId === currentUser.id ? (
                     <p className={ui.text.subtleMeta}>現在のログインユーザー</p>
                   ) : (
-                    <form action={removeForumMember}>
-                      <input name="forumId" type="hidden" value={forum.id} />
-                      <input name="userId" type="hidden" value={member.userId} />
-                      <ConfirmSubmitButton
-                        className={ui.button.dangerCompact}
-                        description="この参加者はフォーラム一覧とチャンネル一覧へアクセスできなくなります。"
-                        message="この参加者をフォーラムから外しますか？"
-                      >
-                        参加者を外す
-                      </ConfirmSubmitButton>
-                    </form>
+                    <ForumMemberRemoveForm
+                      action={removeForumMemberAction}
+                      forumId={forum.id}
+                      initialState={initialForumMemberActionState}
+                      userId={member.userId}
+                    />
                   )}
                 </div>
               </div>

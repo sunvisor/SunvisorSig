@@ -49,6 +49,7 @@ export const initialInvitationActionState: InvitationActionState = {
   message: "",
 };
 
+export const initialForumActionState = initialFormActionState;
 export const initialForumMemberActionState = initialFormActionState;
 
 export async function createForum(formData: FormData) {
@@ -61,8 +62,9 @@ export async function createForum(formData: FormData) {
   const createdByUserId = currentUser.id;
 
   if (!name || !themeName) {
-    throw new Error("必須項目が不足しています。");
+    throw new AppError("INVALID_INPUT", "必須項目が不足しています。");
   }
+
   const theme = getForumThemePreset(themeName);
 
   const forum = await prisma.forum.create({
@@ -84,6 +86,29 @@ export async function createForum(formData: FormData) {
   redirect(`/forums/${forum.id}` as Route);
 }
 
+export async function createForumAction(
+  _previousState: FormActionState,
+  formData: FormData,
+): Promise<FormActionState> {
+  "use server";
+
+  try {
+    await createForum(formData);
+  } catch (error) {
+    if (isAppError(error)) {
+      return {
+        ok: false,
+        code: error.code,
+        message: error.message,
+      };
+    }
+
+    throw error;
+  }
+
+  return initialFormActionState;
+}
+
 export async function updateForum(formData: FormData) {
   "use server";
 
@@ -94,7 +119,7 @@ export async function updateForum(formData: FormData) {
   await requireSystemAdmin();
 
   if (!forumId || !name || !themeName) {
-    throw new Error("必須項目が不足しています。");
+    throw new AppError("INVALID_INPUT", "必須項目が不足しています。");
   }
 
   await assertForumExists(forumId);
@@ -112,6 +137,29 @@ export async function updateForum(formData: FormData) {
 
   revalidateForumPaths(forumId);
   redirect(`/forums/${forumId}` as Route);
+}
+
+export async function updateForumAction(
+  _previousState: FormActionState,
+  formData: FormData,
+): Promise<FormActionState> {
+  "use server";
+
+  try {
+    await updateForum(formData);
+  } catch (error) {
+    if (isAppError(error)) {
+      return {
+        ok: false,
+        code: error.code,
+        message: error.message,
+      };
+    }
+
+    throw error;
+  }
+
+  return initialFormActionState;
 }
 
 export async function addForumMember(formData: FormData) {
@@ -189,7 +237,7 @@ export async function removeForumMember(formData: FormData) {
   const currentUser = await requireSystemAdmin();
 
   if (!forumId || !userId) {
-    throw new Error("必須項目が不足しています。");
+    throw new AppError("INVALID_INPUT", "必須項目が不足しています。");
   }
 
   await assertForumExists(forumId);
@@ -204,7 +252,7 @@ export async function removeForumMember(formData: FormData) {
   });
 
   if (!targetMembership) {
-    throw new Error("対象の参加者が見つかりません。");
+    throw new AppError("INVALID_INPUT", "対象の参加者が見つかりません。");
   }
 
   if (userId === currentUser.id) {
@@ -221,6 +269,32 @@ export async function removeForumMember(formData: FormData) {
   });
 
   revalidateForumPaths(forumId);
+}
+
+export async function removeForumMemberAction(
+  _previousState: FormActionState,
+  formData: FormData,
+): Promise<FormActionState> {
+  "use server";
+
+  try {
+    await removeForumMember(formData);
+
+    return {
+      ok: true,
+      message: "参加者をフォーラムから外しました。",
+    };
+  } catch (error) {
+    if (isAppError(error)) {
+      return {
+        ok: false,
+        code: error.code,
+        message: error.message,
+      };
+    }
+
+    throw error;
+  }
 }
 
 export async function createInvitation(formData: FormData) {

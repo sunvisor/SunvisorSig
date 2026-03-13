@@ -1,11 +1,19 @@
+"use client";
+
 import type { Route } from "next";
+import { useActionState } from "react";
 import { PrimaryLink } from "@/components/forum-ui";
 import { SubmitButton } from "@/components/submit-button";
+import type { FormActionState } from "@/lib/action-state";
 import { forumThemePresets } from "@/lib/forum-theme";
 import { ui } from "@/lib/ui-classes";
 
 type ForumFormProps = Readonly<{
-  action: (formData: FormData) => Promise<void>;
+  action: (
+    state: FormActionState,
+    formData: FormData,
+  ) => Promise<FormActionState>;
+  initialState: FormActionState;
   cancelHref: Route;
   submitLabel: string;
   currentUserName: string;
@@ -19,15 +27,17 @@ type ForumFormProps = Readonly<{
 
 export function ForumForm({
   action,
+  initialState,
   cancelHref,
   submitLabel,
   currentUserName,
   initialValues,
 }: ForumFormProps) {
+  const [state, formAction] = useActionState(action, initialState);
   const defaultThemeName = initialValues?.themeName ?? forumThemePresets[1].themeName;
 
   return (
-    <form action={action} className={ui.form.layout}>
+    <form action={formAction} className={ui.form.layout}>
       {initialValues?.id ? <input name="forumId" type="hidden" value={initialValues.id} /> : null}
       <div className={ui.form.group}>
         <label className={ui.text.label} htmlFor="name">
@@ -107,6 +117,11 @@ export function ForumForm({
           </div>
         ))}
       </div>
+      {state.message ? (
+        <p className={state.ok ? "text-sm font-medium text-emerald-700" : "text-sm font-medium text-rose-700"}>
+          {state.message}
+        </p>
+      ) : null}
       <div className={ui.form.actions}>
         <SubmitButton>{submitLabel}</SubmitButton>
         <PrimaryLink href={cancelHref}>キャンセル</PrimaryLink>

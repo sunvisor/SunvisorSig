@@ -4,7 +4,7 @@ import { ForumForm } from "@/components/forum-form";
 import { ForumShell } from "@/components/forum-shell";
 import { PrimaryLink, SectionCard } from "@/components/forum-ui";
 import { getCurrentUser, isSystemAdmin } from "@/lib/auth";
-import { createForum } from "@/lib/forum-management";
+import { createForumAction, initialForumActionState } from "@/lib/forum-management";
 
 export default async function NewForumPage() {
   const currentUser = await getCurrentUser();
@@ -30,9 +30,10 @@ export default async function NewForumPage() {
     >
       <SectionCard title="新規フォーラム">
         <ForumForm
-          action={createForum}
+          action={createForumAction}
           cancelHref={"/forums" as Route}
           currentUserName={currentUser.displayName}
+          initialState={initialForumActionState}
           submitLabel="フォーラムを作成"
         />
       </SectionCard>
