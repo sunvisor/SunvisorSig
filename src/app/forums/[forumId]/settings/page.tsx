@@ -5,7 +5,7 @@ import { ForumForm } from "@/components/forum-form";
 import { ForumShell } from "@/components/forum-shell";
 import { InvitationCreateForm } from "@/components/invitation-create-form";
 import { PrimaryLink, SectionCard } from "@/components/forum-ui";
-import { getActiveUsers, getForum } from "@/lib/forum-data";
+import { getActiveUsers, getForum, isForumAdmin } from "@/lib/forum-data";
 import { getCurrentUser } from "@/lib/auth";
 import { getForumHeroStyle, getForumPageStyle } from "@/lib/forum-theme";
 import {
@@ -38,6 +38,10 @@ export default async function ForumSettingsPage({ params }: ForumSettingsPagePro
 
   if (!currentUser) {
     redirect("/login");
+  }
+
+  if (!isForumAdmin(forum, currentUser.id)) {
+    notFound();
   }
 
   const admins = forum.members

@@ -16,7 +16,7 @@ import { createComment } from "@/lib/comment-creation";
 import { deleteComment } from "@/lib/comment-deletion";
 import { deletePost } from "@/lib/post-deletion";
 import { formatDateTime } from "@/lib/date-time";
-import { getPost } from "@/lib/forum-data";
+import { getPost, isForumMember } from "@/lib/forum-data";
 import { getForumHeroStyle, getForumPageStyle } from "@/lib/forum-theme";
 
 type PostPageProps = Readonly<{
@@ -37,6 +37,10 @@ export default async function PostPage({ params }: PostPageProps) {
 
   if (!currentUser) {
     redirect("/login");
+  }
+
+  if (!isForumMember(post.channel.forum, currentUser.id)) {
+    notFound();
   }
 
   return (

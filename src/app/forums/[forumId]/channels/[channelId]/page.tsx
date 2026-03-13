@@ -1,10 +1,11 @@
 import type { Route } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { ForumShell } from "@/components/forum-shell";
 import { EmptyState, MetadataRow, PrimaryLink, SectionCard } from "@/components/forum-ui";
+import { getCurrentUser } from "@/lib/auth";
 import { formatDateTime } from "@/lib/date-time";
-import { getChannel } from "@/lib/forum-data";
+import { getChannel, isForumMember } from "@/lib/forum-data";
 import { getForumHeroStyle, getForumPageStyle } from "@/lib/forum-theme";
 import { ui } from "@/lib/ui-classes";
 
@@ -14,9 +15,17 @@ type ChannelPageProps = Readonly<{
 
 export default async function ChannelPage({ params }: ChannelPageProps) {
   const { forumId, channelId } = await params;
-  const channel = await getChannel(channelId);
+  const [channel, currentUser] = await Promise.all([getChannel(channelId), getCurrentUser()]);
 
   if (!channel || channel.forumId !== forumId) {
+    notFound();
+  }
+
+  if (!currentUser) {
+    redirect("/login");
+  }
+
+  if (!isForumMember(channel.forum, currentUser.id)) {
     notFound();
   }
 

@@ -4,7 +4,7 @@ import { ForumShell } from "@/components/forum-shell";
 import { PrimaryLink, SectionCard } from "@/components/forum-ui";
 import { SubmitButton } from "@/components/submit-button";
 import { getCurrentUser } from "@/lib/auth";
-import { getChannel } from "@/lib/forum-data";
+import { getChannel, isForumMember } from "@/lib/forum-data";
 import { getForumHeroStyle, getForumPageStyle } from "@/lib/forum-theme";
 import { createPost } from "@/lib/post-creation";
 import { ui } from "@/lib/ui-classes";
@@ -23,6 +23,10 @@ export default async function NewPostPage({ params }: NewPostPageProps) {
 
   if (!currentUser) {
     redirect("/login");
+  }
+
+  if (!isForumMember(channel.forum, currentUser.id)) {
+    notFound();
   }
 
   return (

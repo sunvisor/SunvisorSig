@@ -28,6 +28,12 @@ npm run db:generate
 npm run db:migrate
 ```
 
+必要なら seed データを入れます。
+
+```bash
+npm run db:seed
+```
+
 3. 開発サーバーを起動します。
 
 ```bash
@@ -39,6 +45,16 @@ npm run dev
 
 補足:
 `next dev` / `next build` は Next.js の既定どおり Turbopack を使用します。
+
+seed データのログイン用アカウント:
+
+- `admin@example.com`
+- `acme@example.com`
+- `globex@example.com`
+
+共通パスワード:
+
+- `password123`
 
 Prisma schema を変更した場合:
 

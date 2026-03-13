@@ -1,6 +1,15 @@
+import { randomBytes, scryptSync } from "node:crypto";
 import { PrismaClient, ForumRole, UserStatus } from "@prisma/client";
 
 const prisma = new PrismaClient();
+const SCRYPT_KEY_LENGTH = 64;
+
+function hashPassword(password) {
+  const salt = randomBytes(16).toString("hex");
+  const hash = scryptSync(password, salt, SCRYPT_KEY_LENGTH).toString("hex");
+
+  return `${salt}:${hash}`;
+}
 
 async function main() {
   await prisma.commentAttachment.deleteMany();
@@ -17,6 +26,7 @@ async function main() {
       data: {
         displayName: "Sunvisor Admin",
         email: "admin@example.com",
+        passwordHash: hashPassword("password123"),
         status: UserStatus.ACTIVE,
       },
     }),
@@ -24,6 +34,7 @@ async function main() {
       data: {
         displayName: "Acme Customer",
         email: "acme@example.com",
+        passwordHash: hashPassword("password123"),
         status: UserStatus.ACTIVE,
       },
     }),
@@ -31,6 +42,7 @@ async function main() {
       data: {
         displayName: "Globex Customer",
         email: "globex@example.com",
+        passwordHash: hashPassword("password123"),
         status: UserStatus.ACTIVE,
       },
     }),
@@ -237,6 +249,7 @@ async function main() {
         channels: 4,
         posts: 4,
         comments: 2,
+        loginPassword: "password123",
       },
       null,
       2,

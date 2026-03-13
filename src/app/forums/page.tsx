@@ -1,14 +1,22 @@
 import type { Route } from "next";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { ForumShell } from "@/components/forum-shell";
 import { EmptyState, MetadataRow, PrimaryLink, SectionCard } from "@/components/forum-ui";
+import { getCurrentUser } from "@/lib/auth";
 import { formatDateTime } from "@/lib/date-time";
 import { getForums } from "@/lib/forum-data";
 import { getForumCardStyle } from "@/lib/forum-theme";
 import { ui } from "@/lib/ui-classes";
 
 export default async function ForumsPage() {
-  const forums = await getForums();
+  const currentUser = await getCurrentUser();
+
+  if (!currentUser) {
+    redirect("/login");
+  }
+
+  const forums = await getForums(currentUser.id);
 
   return (
     <ForumShell
@@ -25,7 +33,7 @@ export default async function ForumsPage() {
       {forums.length === 0 ? (
         <EmptyState
           title="フォーラムがまだありません"
-          description="seed データ投入後に、ここへフォーラム一覧が表示されます。"
+          description="参加しているフォーラムがまだありません。招待受理か参加者追加の後にここへ表示されます。"
         />
       ) : (
         <div className={ui.page.sectionGrid}>

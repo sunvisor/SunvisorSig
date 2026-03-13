@@ -1,10 +1,11 @@
 import type { Route } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { ForumShell } from "@/components/forum-shell";
 import { EmptyState, MetadataRow, PrimaryLink, SectionCard } from "@/components/forum-ui";
+import { getCurrentUser } from "@/lib/auth";
 import { formatDateTime } from "@/lib/date-time";
-import { getForum } from "@/lib/forum-data";
+import { getForum, isForumMember } from "@/lib/forum-data";
 import { getForumHeroStyle, getForumPageStyle } from "@/lib/forum-theme";
 import { ui } from "@/lib/ui-classes";
 
@@ -14,9 +15,17 @@ type ForumPageProps = Readonly<{
 
 export default async function ForumPage({ params }: ForumPageProps) {
   const { forumId } = await params;
-  const forum = await getForum(forumId);
+  const [forum, currentUser] = await Promise.all([getForum(forumId), getCurrentUser()]);
 
   if (!forum) {
+    notFound();
+  }
+
+  if (!currentUser) {
+    redirect("/login");
+  }
+
+  if (!isForumMember(forum, currentUser.id)) {
     notFound();
   }
 
