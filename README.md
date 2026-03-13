@@ -65,6 +65,11 @@ npm run db:migrate
 
 その後、`npm run dev` を再起動してください。
 
+招待メール送信:
+
+- `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM` を設定すると SMTP で招待メールを送信します
+- SMTP 未設定の場合は開発用として招待は作成され、Activation URL はサーバーログへ出力されます
+
 ### Docker で起動する場合
 
 1. アプリケーションと PostgreSQL を起動します。

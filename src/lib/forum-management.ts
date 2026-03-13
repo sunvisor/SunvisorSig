@@ -8,6 +8,7 @@ import { createAuditLog } from "@/lib/audit-log";
 import { prisma } from "@/lib/prisma";
 import { AppError, isAppError, type AppErrorCode } from "@/lib/app-error";
 import { getForumThemePreset } from "@/lib/forum-theme";
+import { sendInvitationEmail } from "@/lib/invitation-email";
 import type { InvitationStatus } from "@prisma/client";
 
 function normalizeDescription(formData: FormData) {
@@ -370,7 +371,17 @@ export async function createInvitation(formData: FormData) {
     throw new AppError("INVALID_INPUT", "必須項目が不足しています。");
   }
 
-  await assertForumExists(forumId);
+  const forum = await prisma.forum.findUnique({
+    where: { id: forumId },
+    select: {
+      id: true,
+      name: true,
+    },
+  });
+
+  if (!forum) {
+    throw new AppError("INVALID_INPUT", "対象のフォーラムが見つかりません。");
+  }
 
   const existingUser = await prisma.user.findUnique({
     where: { email },
@@ -400,6 +411,7 @@ export async function createInvitation(formData: FormData) {
     );
   }
 
+  const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 7);
   const invitation = await prisma.invitation.create({
     data: {
       forumId,
@@ -407,24 +419,44 @@ export async function createInvitation(formData: FormData) {
       role: "PARTICIPANT",
       token: randomBytes(24).toString("hex"),
       status: "PENDING",
-      expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7),
+      expiresAt,
       createdByUserId: actingUserId,
     },
   });
 
-  await createAuditLog({
-    actorUserId: actingUserId,
-    actionType: "INVITATION_CREATED",
-    targetType: "INVITATION",
-    targetId: invitation.id,
-    targetLabel: email,
-    metadata: {
-      forumId,
-      status: "PENDING",
-    },
-  });
+  try {
+    const delivery = await sendInvitationEmail({
+      forumName: forum.name,
+      recipientEmail: email,
+      token: invitation.token,
+      expiresAt,
+    });
+
+    await createAuditLog({
+      actorUserId: actingUserId,
+      actionType: "INVITATION_CREATED",
+      targetType: "INVITATION",
+      targetId: invitation.id,
+      targetLabel: email,
+      metadata: {
+        forumId,
+        status: "PENDING",
+        deliveryMode: delivery.deliveryMode,
+      },
+    });
+  } catch {
+    await prisma.invitation.delete({
+      where: {
+        id: invitation.id,
+      },
+    });
+
+    throw new AppError("INVALID_INPUT", "招待メールの送信に失敗しました。SMTP 設定を確認してください。");
+  }
 
   revalidateForumPaths(forumId);
+
+  return invitation;
 }
 
 export async function createInvitationAction(
@@ -435,11 +467,17 @@ export async function createInvitationAction(
 
   try {
     await createInvitation(formData);
+    const deliveryMode = process.env.SMTP_HOST && process.env.SMTP_PORT && process.env.SMTP_FROM
+      ? "smtp"
+      : "log";
 
     return {
       ok: true,
       code: undefined,
-      message: "招待を作成しました。",
+      message:
+        deliveryMode === "smtp"
+          ? "招待を作成し、招待メールを送信しました。"
+          : `招待を作成しました。SMTP 未設定のため Activation URL はサーバーログを確認してください。`,
     };
   } catch (error) {
     return {
