@@ -53,6 +53,25 @@ enum NotificationType {
   CHANNEL_COMMENT
 }
 
+enum AuditActionType {
+  FORUM_CREATED
+  FORUM_UPDATED
+  FORUM_DELETED
+  CHANNEL_CREATED
+  CHANNEL_DELETED
+  FORUM_MEMBER_ADDED
+  FORUM_MEMBER_REMOVED
+  INVITATION_CREATED
+  INVITATION_CANCELED
+}
+
+enum AuditTargetType {
+  FORUM
+  CHANNEL
+  FORUM_MEMBER
+  INVITATION
+}
+
 model User {
   id                   String                @id @default(uuid()) @db.Uuid
   displayName          String
@@ -72,6 +91,7 @@ model User {
   channelSubscriptions ChannelSubscription[]
   notifications        Notification[]        @relation("NotificationRecipient")
   notificationActors   Notification[]        @relation("NotificationActor")
+  auditLogs            AuditLog[]
 }
 
 model Forum {
@@ -268,4 +288,20 @@ model Notification {
 
   @@index([userId, readAt, createdAt])
   @@index([postId])
+}
+
+model AuditLog {
+  id          String          @id @default(uuid()) @db.Uuid
+  actorUserId String          @db.Uuid
+  actionType  AuditActionType
+  targetType  AuditTargetType
+  targetId    String          @db.Uuid
+  targetLabel String
+  metadata    Json?
+  createdAt   DateTime        @default(now())
+  actorUser   User            @relation(fields: [actorUserId], references: [id], onDelete: Restrict)
+
+  @@index([createdAt])
+  @@index([actionType, createdAt])
+  @@index([actorUserId, createdAt])
 }

@@ -27,7 +27,10 @@ export default async function ForumsPage() {
       actions={
         <>
           {isSystemAdmin(currentUser) ? (
-            <PrimaryLink href={"/forums/new" as Route} icon={Plus}>フォーラム作成</PrimaryLink>
+            <>
+              <PrimaryLink href={"/forums/new" as Route} icon={Plus}>フォーラム作成</PrimaryLink>
+              <PrimaryLink href={"/admin/audit-logs" as Route}>監査ログ</PrimaryLink>
+            </>
           ) : null}
           <PrimaryLink href={"/forums" as Route}>一覧を更新</PrimaryLink>
         </>

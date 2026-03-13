@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { requireSystemAdmin } from "@/lib/auth";
 import { initialFormActionState, type FormActionState } from "@/lib/action-state";
+import { createAuditLog } from "@/lib/audit-log";
 import { AppError, isAppError } from "@/lib/app-error";
 import { prisma } from "@/lib/prisma";
 
@@ -35,6 +36,18 @@ export async function createChannel(formData: FormData) {
       createdByUserId,
       name,
       description,
+    },
+  });
+
+  await createAuditLog({
+    actorUserId: createdByUserId,
+    actionType: "CHANNEL_CREATED",
+    targetType: "CHANNEL",
+    targetId: channel.id,
+    targetLabel: channel.name,
+    metadata: {
+      forumId,
+      description: channel.description,
     },
   });
 

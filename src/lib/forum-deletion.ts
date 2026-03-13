@@ -2,8 +2,10 @@ import type { Route } from "next";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { initialFormActionState, type FormActionState } from "@/lib/action-state";
+import { createAuditLog } from "@/lib/audit-log";
 import { requireCurrentUser } from "@/lib/auth";
 import { AppError, isAppError } from "@/lib/app-error";
+import { prisma } from "@/lib/prisma";
 import { deleteForumById } from "@/lib/deletion-service";
 
 export const initialForumDeleteActionState = initialFormActionState;
@@ -18,9 +20,29 @@ export async function deleteForum(formData: FormData) {
     throw new AppError("INVALID_INPUT", "必須項目が不足しています。");
   }
 
+  const forum = await prisma.forum.findUnique({
+    where: { id: forumId },
+    select: {
+      id: true,
+      name: true,
+    },
+  });
+
+  if (!forum) {
+    throw new AppError("INVALID_INPUT", "対象のフォーラムが見つかりません。");
+  }
+
   await deleteForumById({
     forumId,
     actingUserId: currentUser.id,
+  });
+
+  await createAuditLog({
+    actorUserId: currentUser.id,
+    actionType: "FORUM_DELETED",
+    targetType: "FORUM",
+    targetId: forum.id,
+    targetLabel: forum.name,
   });
 
   revalidatePath("/forums");
