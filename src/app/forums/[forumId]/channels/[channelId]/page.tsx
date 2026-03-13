@@ -1,6 +1,7 @@
 import type { Route } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { ChannelPostFilters } from "@/components/channel-post-filters";
 import { ChannelDeleteForm } from "@/components/channel-delete-form";
 import { ForumShell } from "@/components/forum-shell";
 import { EmptyState, MetadataRow, PrimaryLink, SectionCard } from "@/components/forum-ui";
@@ -13,7 +14,7 @@ import {
 import { formatDateTime } from "@/lib/date-time";
 import { getChannelWithPostSearch, isForumMember } from "@/lib/forum-data";
 import { getForumHeroStyle, getForumPageStyle } from "@/lib/forum-theme";
-import { getPostStatusLabel, postStatusFilterOptions } from "@/lib/post-status";
+import { getPostStatusLabel } from "@/lib/post-status";
 import { ui } from "@/lib/ui-classes";
 
 type ChannelPageProps = Readonly<{
@@ -70,34 +71,7 @@ export default async function ChannelPage({ params, searchParams }: ChannelPageP
     >
       <div className={ui.page.twoColumnGrid}>
         <SectionCard title="投稿一覧">
-          <form action="" className="mb-5 grid gap-3 md:grid-cols-[minmax(0,1fr)_220px_auto_auto]">
-            <input
-              className={ui.form.input}
-              defaultValue={query}
-              name="q"
-              placeholder="投稿タイトルや本文を検索"
-              type="search"
-            />
-            <select
-              className={ui.form.select}
-              defaultValue={selectedStatus}
-              name="status"
-            >
-              {postStatusFilterOptions.map((option) => (
-                <option key={option.value || "ALL"} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-            <button className={ui.button.primary} type="submit">
-              検索
-            </button>
-            {query || selectedStatus ? (
-              <PrimaryLink href={`/forums/${channel.forum.id}/channels/${channel.id}` as Route}>
-                クリア
-              </PrimaryLink>
-            ) : null}
-          </form>
+          <ChannelPostFilters initialQuery={query} initialStatus={selectedStatus} />
           {query || selectedStatus ? (
             <p className={`${ui.text.meta} mb-4`}>
               検索結果: {channel.posts.length} 件
