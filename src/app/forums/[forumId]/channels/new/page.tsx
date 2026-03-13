@@ -5,7 +5,7 @@ import { PrimaryLink, SectionCard } from "@/components/forum-ui";
 import { SubmitButton } from "@/components/submit-button";
 import { getCurrentUser } from "@/lib/auth";
 import { createChannel } from "@/lib/channel-creation";
-import { getForum, isForumMember } from "@/lib/forum-data";
+import { getForum, isForumAdmin, isForumMember } from "@/lib/forum-data";
 import { getForumHeroStyle, getForumPageStyle } from "@/lib/forum-theme";
 import { ui } from "@/lib/ui-classes";
 
@@ -26,6 +26,10 @@ export default async function NewChannelPage({ params }: NewChannelPageProps) {
   }
 
   if (!isForumMember(forum, currentUser.id)) {
+    notFound();
+  }
+
+  if (!isForumAdmin(forum, currentUser.id)) {
     notFound();
   }
 

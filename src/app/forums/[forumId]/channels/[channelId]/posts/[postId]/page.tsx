@@ -16,7 +16,7 @@ import { createComment } from "@/lib/comment-creation";
 import { deleteComment } from "@/lib/comment-deletion";
 import { deletePost } from "@/lib/post-deletion";
 import { formatDateTime } from "@/lib/date-time";
-import { getPost, isForumMember } from "@/lib/forum-data";
+import { getPost, isForumAdmin, isForumMember } from "@/lib/forum-data";
 import { getForumHeroStyle, getForumPageStyle } from "@/lib/forum-theme";
 
 type PostPageProps = Readonly<{
@@ -42,6 +42,8 @@ export default async function PostPage({ params }: PostPageProps) {
   if (!isForumMember(post.channel.forum, currentUser.id)) {
     notFound();
   }
+
+  const isAdmin = isForumAdmin(post.channel.forum, currentUser.id);
 
   return (
     <ForumShell
@@ -99,19 +101,21 @@ export default async function PostPage({ params }: PostPageProps) {
                         <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
                           Files {comment.attachments.length}
                         </p>
-                        <form action={deleteComment}>
-                          <input name="forumId" type="hidden" value={forumId} />
-                          <input name="channelId" type="hidden" value={channelId} />
-                          <input name="postId" type="hidden" value={postId} />
-                          <input name="commentId" type="hidden" value={comment.id} />
-                          <ConfirmSubmitButton
-                            className="rounded-full border border-rose-200 bg-white px-3 py-1 text-xs font-medium text-rose-700 transition hover:border-rose-300 hover:bg-rose-50"
-                            description="添付ファイルがある場合は、その情報も削除待ちデータへ退避されます。"
-                            message="このコメントを削除しますか？"
-                          >
-                            コメント削除
-                          </ConfirmSubmitButton>
-                        </form>
+                        {comment.authorUserId === currentUser.id || isAdmin ? (
+                          <form action={deleteComment}>
+                            <input name="forumId" type="hidden" value={forumId} />
+                            <input name="channelId" type="hidden" value={channelId} />
+                            <input name="postId" type="hidden" value={postId} />
+                            <input name="commentId" type="hidden" value={comment.id} />
+                            <ConfirmSubmitButton
+                              className="rounded-full border border-rose-200 bg-white px-3 py-1 text-xs font-medium text-rose-700 transition hover:border-rose-300 hover:bg-rose-50"
+                              description="添付ファイルがある場合は、その情報も削除待ちデータへ退避されます。"
+                              message="このコメントを削除しますか？"
+                            >
+                              コメント削除
+                            </ConfirmSubmitButton>
+                          </form>
+                        ) : null}
                       </div>
                     </div>
                     <div className="mt-4">
@@ -166,18 +170,20 @@ export default async function PostPage({ params }: PostPageProps) {
               />
             ))}
           </div>
-          <form action={deletePost} className="mt-6">
-            <input name="forumId" type="hidden" value={forumId} />
-            <input name="channelId" type="hidden" value={channelId} />
-            <input name="postId" type="hidden" value={postId} />
-            <ConfirmSubmitButton
-              className="inline-flex items-center rounded-full border border-rose-200 bg-white px-4 py-2 text-sm font-medium text-rose-700 transition hover:border-rose-300 hover:bg-rose-50"
-              description="投稿本体、投稿添付、配下コメント、コメント添付が削除待ちデータへ退避された後に削除されます。"
-              message="この投稿を削除しますか？"
-            >
-              投稿削除
-            </ConfirmSubmitButton>
-          </form>
+          {post.authorUserId === currentUser.id || isAdmin ? (
+            <form action={deletePost} className="mt-6">
+              <input name="forumId" type="hidden" value={forumId} />
+              <input name="channelId" type="hidden" value={channelId} />
+              <input name="postId" type="hidden" value={postId} />
+              <ConfirmSubmitButton
+                className="inline-flex items-center rounded-full border border-rose-200 bg-white px-4 py-2 text-sm font-medium text-rose-700 transition hover:border-rose-300 hover:bg-rose-50"
+                description="投稿本体、投稿添付、配下コメント、コメント添付が削除待ちデータへ退避された後に削除されます。"
+                message="この投稿を削除しますか？"
+              >
+                投稿削除
+              </ConfirmSubmitButton>
+            </form>
+          ) : null}
         </SectionCard>
       </div>
     </ForumShell>

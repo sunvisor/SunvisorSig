@@ -1,4 +1,5 @@
 import { revalidatePath } from "next/cache";
+import { requireCurrentUser } from "@/lib/auth";
 import { deleteCommentById } from "@/lib/deletion-service";
 
 export async function deleteComment(formData: FormData) {
@@ -13,7 +14,15 @@ export async function deleteComment(formData: FormData) {
     throw new Error("削除対象の情報が不足しています。");
   }
 
-  await deleteCommentById({ forumId, channelId, postId, commentId });
+  const currentUser = await requireCurrentUser();
+
+  await deleteCommentById({
+    forumId,
+    channelId,
+    postId,
+    commentId,
+    actingUserId: currentUser.id,
+  });
 
   revalidatePath(`/forums/${forumId}/channels/${channelId}`);
   revalidatePath(`/forums/${forumId}/channels/${channelId}/posts/${postId}`);

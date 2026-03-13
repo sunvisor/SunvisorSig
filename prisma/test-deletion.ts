@@ -92,6 +92,7 @@ async function main() {
     channelId: channel.id,
     postId: commentDeletionPost.id,
     commentId: commentDeletionComment.id,
+    actingUserId: member.id,
   });
 
   const deletedComment = await prisma.deletedComment.findUnique({
@@ -150,6 +151,7 @@ async function main() {
     forumId: forum.id,
     channelId: channel.id,
     postId: postDeletionPost.id,
+    actingUserId: admin.id,
   });
 
   const deletedPost = await prisma.deletedPost.findUnique({

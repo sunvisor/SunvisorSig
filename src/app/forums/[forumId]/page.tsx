@@ -5,7 +5,7 @@ import { ForumShell } from "@/components/forum-shell";
 import { EmptyState, MetadataRow, PrimaryLink, SectionCard } from "@/components/forum-ui";
 import { getCurrentUser } from "@/lib/auth";
 import { formatDateTime } from "@/lib/date-time";
-import { getForum, isForumMember } from "@/lib/forum-data";
+import { getForum, isForumAdmin, isForumMember } from "@/lib/forum-data";
 import { getForumHeroStyle, getForumPageStyle } from "@/lib/forum-theme";
 import { ui } from "@/lib/ui-classes";
 
@@ -29,6 +29,8 @@ export default async function ForumPage({ params }: ForumPageProps) {
     notFound();
   }
 
+  const isAdmin = isForumAdmin(forum, currentUser.id);
+
   return (
     <ForumShell
       eyebrow="Forum"
@@ -41,10 +43,12 @@ export default async function ForumPage({ params }: ForumPageProps) {
         { label: forum.name },
       ]}
       actions={
-        <>
-          <PrimaryLink href={`/forums/${forum.id}/settings` as Route}>フォーラム設定</PrimaryLink>
-          <PrimaryLink href={`/forums/${forum.id}/channels/new` as Route}>チャンネル作成</PrimaryLink>
-        </>
+        isAdmin ? (
+          <>
+            <PrimaryLink href={`/forums/${forum.id}/settings` as Route}>フォーラム設定</PrimaryLink>
+            <PrimaryLink href={`/forums/${forum.id}/channels/new` as Route}>チャンネル作成</PrimaryLink>
+          </>
+        ) : undefined
       }
     >
       <div className={ui.page.twoColumnGrid}>

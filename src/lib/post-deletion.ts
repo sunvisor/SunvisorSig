@@ -1,6 +1,7 @@
 import type { Route } from "next";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { requireCurrentUser } from "@/lib/auth";
 import { deletePostById } from "@/lib/deletion-service";
 
 export async function deletePost(formData: FormData) {
@@ -14,7 +15,14 @@ export async function deletePost(formData: FormData) {
     throw new Error("削除対象の情報が不足しています。");
   }
 
-  await deletePostById({ forumId, channelId, postId });
+  const currentUser = await requireCurrentUser();
+
+  await deletePostById({
+    forumId,
+    channelId,
+    postId,
+    actingUserId: currentUser.id,
+  });
 
   revalidatePath("/forums");
   revalidatePath(`/forums/${forumId}`);

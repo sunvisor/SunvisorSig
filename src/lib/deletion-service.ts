@@ -1,5 +1,6 @@
 import { access, readdir, rm } from "node:fs/promises";
 import { dirname, join, relative } from "node:path";
+import { AppError } from "@/lib/app-error";
 import { prisma } from "@/lib/prisma";
 
 const RETENTION_DAYS = 30;
@@ -10,12 +11,14 @@ type DeleteCommentInput = {
   channelId: string;
   postId: string;
   commentId: string;
+  actingUserId: string;
 };
 
 type DeletePostInput = {
   forumId: string;
   channelId: string;
   postId: string;
+  actingUserId: string;
 };
 
 async function exists(pathname: string) {
@@ -60,6 +63,7 @@ export async function deleteCommentById({
   channelId,
   postId,
   commentId,
+  actingUserId,
 }: DeleteCommentInput) {
   const comment = await prisma.comment.findUnique({
     where: { id: commentId },
@@ -80,6 +84,22 @@ export async function deleteCommentById({
     comment.post.channel.forumId !== forumId
   ) {
     throw new Error("コメントが見つかりません。");
+  }
+
+  const membership = await prisma.forumMember.findUnique({
+    where: {
+      forumId_userId: {
+        forumId,
+        userId: actingUserId,
+      },
+    },
+  });
+
+  const canDelete =
+    comment.authorUserId === actingUserId || membership?.role === "ADMIN";
+
+  if (!canDelete) {
+    throw new AppError("FORBIDDEN", "コメント作成者本人または管理者のみ削除できます。");
   }
 
   const { deletedAt, purgeAfter } = buildRetentionWindow();
@@ -107,7 +127,7 @@ export async function deleteCommentById({
         postId: comment.postId,
         authorUserId: comment.authorUserId,
         bodyMarkdown: comment.bodyMarkdown,
-        deletedByUserId: comment.authorUserId,
+        deletedByUserId: actingUserId,
         deletedAt,
         purgeAfter,
         createdAt: comment.createdAt,
@@ -128,6 +148,7 @@ export async function deletePostById({
   forumId,
   channelId,
   postId,
+  actingUserId,
 }: DeletePostInput) {
   const post = await prisma.post.findUnique({
     where: { id: postId },
@@ -148,6 +169,22 @@ export async function deletePostById({
     post.channel.forumId !== forumId
   ) {
     throw new Error("投稿が見つかりません。");
+  }
+
+  const membership = await prisma.forumMember.findUnique({
+    where: {
+      forumId_userId: {
+        forumId,
+        userId: actingUserId,
+      },
+    },
+  });
+
+  const canDelete =
+    post.authorUserId === actingUserId || membership?.role === "ADMIN";
+
+  if (!canDelete) {
+    throw new AppError("FORBIDDEN", "投稿者本人または管理者のみ削除できます。");
   }
 
   const { deletedAt, purgeAfter } = buildRetentionWindow();
@@ -193,7 +230,7 @@ export async function deletePostById({
           postId: comment.postId,
           authorUserId: comment.authorUserId,
           bodyMarkdown: comment.bodyMarkdown,
-          deletedByUserId: comment.authorUserId,
+          deletedByUserId: actingUserId,
           deletedAt,
           purgeAfter,
           createdAt: comment.createdAt,
@@ -208,7 +245,7 @@ export async function deletePostById({
         authorUserId: post.authorUserId,
         title: post.title,
         bodyMarkdown: post.bodyMarkdown,
-        deletedByUserId: post.authorUserId,
+        deletedByUserId: actingUserId,
         deletedAt,
         purgeAfter,
         createdAt: post.createdAt,
