@@ -2,19 +2,24 @@
 
 import { useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { Trash2 } from "lucide-react";
 import { ui } from "@/lib/ui-classes";
 
 type ConfirmSubmitButtonProps = Readonly<{
-  children: React.ReactNode;
+  children?: React.ReactNode;
+  ariaLabel?: string;
   className?: string;
   description?: string;
+  icon?: "trash";
   message: string;
 }>;
 
 export function ConfirmSubmitButton({
   children,
+  ariaLabel,
   className,
   description,
+  icon,
   message,
 }: ConfirmSubmitButtonProps) {
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -23,11 +28,13 @@ export function ConfirmSubmitButton({
   return (
     <>
       <button
+        aria-label={ariaLabel}
         className={className}
         onClick={() => setIsOpen(true)}
         ref={buttonRef}
         type="button"
       >
+        {icon === "trash" ? <Trash2 aria-hidden="true" size={16} /> : null}
         {children}
       </button>
       {isOpen && typeof document !== "undefined"

@@ -28,12 +28,12 @@ export function ForumMemberRemoveForm({
       <input name="forumId" type="hidden" value={forumId} />
       <input name="userId" type="hidden" value={userId} />
       <ConfirmSubmitButton
-        className={ui.button.dangerCompact}
+        ariaLabel="参加者をフォーラムから外す"
+        className={ui.button.iconDanger}
         description="この参加者はフォーラム一覧とチャンネル一覧へアクセスできなくなります。"
+        icon="trash"
         message="この参加者をフォーラムから外しますか？"
-      >
-        参加者を外す
-      </ConfirmSubmitButton>
+      />
       {state.message ? (
         <p className={state.ok ? "text-right text-sm font-medium text-emerald-700" : "text-right text-sm font-medium text-rose-700"}>
           {state.message}

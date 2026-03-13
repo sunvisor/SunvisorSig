@@ -1,9 +1,15 @@
 import type { Route } from "next";
+import { Plus } from "lucide-react";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { ChannelDeleteForm } from "@/components/channel-delete-form";
 import { ForumShell } from "@/components/forum-shell";
 import { EmptyState, MetadataRow, PrimaryLink, SectionCard } from "@/components/forum-ui";
 import { getCurrentUser, isSystemAdmin } from "@/lib/auth";
+import {
+  deleteChannelAction,
+  initialChannelDeleteActionState,
+} from "@/lib/channel-deletion";
 import { formatDateTime } from "@/lib/date-time";
 import { getForum, isForumMember } from "@/lib/forum-data";
 import { getForumHeroStyle, getForumPageStyle } from "@/lib/forum-theme";
@@ -44,7 +50,7 @@ export default async function ForumPage({ params }: ForumPageProps) {
         isSystemAdmin(currentUser) ? (
           <>
             <PrimaryLink href={`/forums/${forum.id}/settings` as Route}>フォーラム設定</PrimaryLink>
-            <PrimaryLink href={`/forums/${forum.id}/channels/new` as Route}>チャンネル作成</PrimaryLink>
+            <PrimaryLink href={`/forums/${forum.id}/channels/new` as Route} icon={Plus}>チャンネル作成</PrimaryLink>
           </>
         ) : undefined
       }
@@ -59,20 +65,34 @@ export default async function ForumPage({ params }: ForumPageProps) {
           ) : (
             <div className="grid gap-4">
               {forum.channels.map((channel) => (
-                <Link
+                <div
                   key={channel.id}
                   className={`${ui.surface.listItem} p-4`}
-                  href={`/forums/${forum.id}/channels/${channel.id}` as Route}
                 >
-                  <p className="theme-text font-medium">{channel.name}</p>
-                  <p className={`mt-2 ${ui.text.body}`}>{channel.description}</p>
-                  <p className={`mt-3 ${ui.text.meta}`}>
-                    Posts {channel._count.posts}
-                  </p>
-                  <p className={`mt-2 ${ui.text.subtleMeta}`}>
-                    Updated {formatDateTime(channel.updatedAt)}
-                  </p>
-                </Link>
+                  <div className="flex items-start justify-between gap-3">
+                    <Link
+                      className="min-w-0 flex-1"
+                      href={`/forums/${forum.id}/channels/${channel.id}` as Route}
+                    >
+                      <p className="theme-text font-medium">{channel.name}</p>
+                      <p className={`mt-2 ${ui.text.body}`}>{channel.description}</p>
+                      <p className={`mt-3 ${ui.text.meta}`}>
+                        Posts {channel._count.posts}
+                      </p>
+                      <p className={`mt-2 ${ui.text.subtleMeta}`}>
+                        Updated {formatDateTime(channel.updatedAt)}
+                      </p>
+                    </Link>
+                    {isSystemAdmin(currentUser) ? (
+                      <ChannelDeleteForm
+                        action={deleteChannelAction}
+                        channelId={channel.id}
+                        forumId={forum.id}
+                        initialState={initialChannelDeleteActionState}
+                      />
+                    ) : null}
+                  </div>
+                </div>
               ))}
             </div>
           )}

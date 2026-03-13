@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { Pencil } from "lucide-react";
 import { MarkdownContent } from "@/components/markdown-content";
 import type { FormActionState } from "@/lib/action-state";
 import { ui } from "@/lib/ui-classes";
@@ -26,6 +27,7 @@ type CommentInlineEditorProps = Readonly<{
     formData: FormData,
   ) => Promise<FormActionState>;
   initialState: FormActionState;
+  trailingActions?: React.ReactNode;
 }>;
 
 export function CommentInlineEditor({
@@ -38,6 +40,7 @@ export function CommentInlineEditor({
   editable,
   action,
   initialState,
+  trailingActions,
 }: CommentInlineEditorProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [state, formAction] = useActionState(action, initialState);
@@ -45,16 +48,18 @@ export function CommentInlineEditor({
   if (!editable || !isEditing) {
     return (
       <div className="grid gap-4">
-        <div className="flex items-start justify-end">
+        <div className="flex items-start justify-end gap-2">
           {editable ? (
             <button
-              className={ui.button.secondary}
+              aria-label="コメントを編集"
+              className={ui.button.iconSecondary}
               onClick={() => setIsEditing(true)}
               type="button"
             >
-              コメントを編集
+              <Pencil aria-hidden="true" size={16} />
             </button>
           ) : null}
+          {trailingActions}
         </div>
         <MarkdownContent attachments={attachments} value={bodyMarkdown} />
       </div>

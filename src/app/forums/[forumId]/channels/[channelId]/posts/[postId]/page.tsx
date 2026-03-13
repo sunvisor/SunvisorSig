@@ -27,6 +27,7 @@ import {
 import { formatDateTime } from "@/lib/date-time";
 import { getPost, isForumMember } from "@/lib/forum-data";
 import { getForumHeroStyle, getForumPageStyle } from "@/lib/forum-theme";
+import { ui } from "@/lib/ui-classes";
 
 type PostPageProps = Readonly<{
   params: Promise<{ forumId: string; channelId: string; postId: string }>;
@@ -88,6 +89,22 @@ export default async function PostPage({ params }: PostPageProps) {
               forumId={forumId}
               initialState={initialPostEditActionState}
               postId={postId}
+              trailingActions={
+                post.authorUserId === currentUser.id || isAdmin ? (
+                  <form action={deletePost}>
+                    <input name="forumId" type="hidden" value={forumId} />
+                    <input name="channelId" type="hidden" value={channelId} />
+                    <input name="postId" type="hidden" value={postId} />
+                    <ConfirmSubmitButton
+                      ariaLabel="投稿を削除"
+                      className={ui.button.iconDanger}
+                      description="投稿本体、投稿添付、配下コメント、コメント添付が削除待ちデータへ退避された後に削除されます。"
+                      icon="trash"
+                      message="この投稿を削除しますか？"
+                    />
+                  </form>
+                ) : null
+              }
               title={post.title}
             />
           </SectionCard>
@@ -113,26 +130,9 @@ export default async function PostPage({ params }: PostPageProps) {
                           {formatDateTime(comment.createdAt)}
                         </p>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
-                          Files {comment.attachments.length}
-                        </p>
-                        {comment.authorUserId === currentUser.id || isAdmin ? (
-                          <form action={deleteComment}>
-                            <input name="forumId" type="hidden" value={forumId} />
-                            <input name="channelId" type="hidden" value={channelId} />
-                            <input name="postId" type="hidden" value={postId} />
-                            <input name="commentId" type="hidden" value={comment.id} />
-                            <ConfirmSubmitButton
-                              className="rounded-full border border-rose-200 bg-white px-3 py-1 text-xs font-medium text-rose-700 transition hover:border-rose-300 hover:bg-rose-50"
-                              description="添付ファイルがある場合は、その情報も削除待ちデータへ退避されます。"
-                              message="このコメントを削除しますか？"
-                            >
-                              コメント削除
-                            </ConfirmSubmitButton>
-                          </form>
-                        ) : null}
-                      </div>
+                      <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
+                        Files {comment.attachments.length}
+                      </p>
                     </div>
                     <div className="mt-4">
                       <CommentInlineEditor
@@ -145,6 +145,23 @@ export default async function PostPage({ params }: PostPageProps) {
                         forumId={forumId}
                         initialState={initialCommentEditActionState}
                         postId={postId}
+                        trailingActions={
+                          comment.authorUserId === currentUser.id || isAdmin ? (
+                            <form action={deleteComment}>
+                              <input name="forumId" type="hidden" value={forumId} />
+                              <input name="channelId" type="hidden" value={channelId} />
+                              <input name="postId" type="hidden" value={postId} />
+                              <input name="commentId" type="hidden" value={comment.id} />
+                              <ConfirmSubmitButton
+                                ariaLabel="コメントを削除"
+                                className={ui.button.iconDanger}
+                                description="添付ファイルがある場合は、その情報も削除待ちデータへ退避されます。"
+                                icon="trash"
+                                message="このコメントを削除しますか？"
+                              />
+                            </form>
+                          ) : null
+                        }
                       />
                     </div>
                     {comment.attachments.length > 0 ? (
@@ -212,20 +229,6 @@ export default async function PostPage({ params }: PostPageProps) {
               />
             ))}
           </div>
-          {post.authorUserId === currentUser.id || isAdmin ? (
-            <form action={deletePost} className="mt-6">
-              <input name="forumId" type="hidden" value={forumId} />
-              <input name="channelId" type="hidden" value={channelId} />
-              <input name="postId" type="hidden" value={postId} />
-              <ConfirmSubmitButton
-                className="inline-flex items-center rounded-full border border-rose-200 bg-white px-4 py-2 text-sm font-medium text-rose-700 transition hover:border-rose-300 hover:bg-rose-50"
-                description="投稿本体、投稿添付、配下コメント、コメント添付が削除待ちデータへ退避された後に削除されます。"
-                message="この投稿を削除しますか？"
-              >
-                投稿削除
-              </ConfirmSubmitButton>
-            </form>
-          ) : null}
         </SectionCard>
       </div>
     </ForumShell>

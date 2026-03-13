@@ -28,12 +28,12 @@ export function InvitationCancelForm({
       <input name="forumId" type="hidden" value={forumId} />
       <input name="invitationId" type="hidden" value={invitationId} />
       <ConfirmSubmitButton
-        className={ui.button.dangerCompact}
+        ariaLabel="招待を取り消す"
+        className={ui.button.iconDanger}
         description="取り消した招待リンクは無効になります。"
+        icon="trash"
         message="この招待を取り消しますか？"
-      >
-        招待を取消
-      </ConfirmSubmitButton>
+      />
       {state.message ? (
         <p className={state.ok ? "text-right text-sm font-medium text-emerald-700" : "text-right text-sm font-medium text-rose-700"}>
           {state.message}

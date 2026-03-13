@@ -1,5 +1,6 @@
 import type { Route } from "next";
 import Link from "next/link";
+import type { LucideIcon } from "lucide-react";
 import { ui } from "@/lib/ui-classes";
 
 export function SectionCard({
@@ -36,12 +37,14 @@ export function EmptyState({
 export function PrimaryLink({
   href,
   children,
-}: Readonly<{ href: Route; children: React.ReactNode }>) {
+  icon: Icon,
+}: Readonly<{ href: Route; children: React.ReactNode; icon?: LucideIcon }>) {
   return (
     <Link
       className={ui.button.primaryLink}
       href={href}
     >
+      {Icon ? <Icon aria-hidden="true" size={16} /> : null}
       {children}
     </Link>
   );

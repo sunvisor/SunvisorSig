@@ -28,12 +28,12 @@ export function ChannelDeleteForm({
       <input name="forumId" type="hidden" value={forumId} />
       <input name="channelId" type="hidden" value={channelId} />
       <ConfirmSubmitButton
-        className={ui.button.danger}
+        ariaLabel="チャンネルを削除"
+        className={ui.button.iconDanger}
         description="配下の投稿、コメント、添付ファイルも含めて物理削除されます。"
+        icon="trash"
         message="このチャンネルを削除しますか？"
-      >
-        チャンネル削除
-      </ConfirmSubmitButton>
+      />
       {state.message ? (
         <p className={state.ok ? "text-sm font-medium text-emerald-700" : "text-sm font-medium text-rose-700"}>
           {state.message}

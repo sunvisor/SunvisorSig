@@ -1,4 +1,5 @@
 import type { Route } from "next";
+import { Plus } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ForumShell } from "@/components/forum-shell";
@@ -26,7 +27,7 @@ export default async function ForumsPage() {
       actions={
         <>
           {isSystemAdmin(currentUser) ? (
-            <PrimaryLink href={"/forums/new" as Route}>フォーラム作成</PrimaryLink>
+            <PrimaryLink href={"/forums/new" as Route} icon={Plus}>フォーラム作成</PrimaryLink>
           ) : null}
           <PrimaryLink href={"/forums" as Route}>一覧を更新</PrimaryLink>
         </>

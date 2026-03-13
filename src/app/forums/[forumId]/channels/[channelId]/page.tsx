@@ -1,16 +1,12 @@
 import type { Route } from "next";
+import { Plus } from "lucide-react";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ChannelPostFilters } from "@/components/channel-post-filters";
-import { ChannelDeleteForm } from "@/components/channel-delete-form";
 import { ForumShell } from "@/components/forum-shell";
 import { EmptyState, MetadataRow, PrimaryLink, SectionCard } from "@/components/forum-ui";
 import { PostStatusBadge } from "@/components/post-status-badge";
 import { getCurrentUser, isSystemAdmin } from "@/lib/auth";
-import {
-  deleteChannelAction,
-  initialChannelDeleteActionState,
-} from "@/lib/channel-deletion";
 import { formatDateTime } from "@/lib/date-time";
 import { getChannelWithPostSearch, isForumMember } from "@/lib/forum-data";
 import { getForumHeroStyle, getForumPageStyle } from "@/lib/forum-theme";
@@ -59,6 +55,7 @@ export default async function ChannelPage({ params, searchParams }: ChannelPageP
       actions={
         <>
           <PrimaryLink
+            icon={Plus}
             href={`/forums/${channel.forum.id}/channels/${channel.id}/posts/new` as Route}
           >
             投稿作成
@@ -129,16 +126,6 @@ export default async function ChannelPage({ params, searchParams }: ChannelPageP
             <MetadataRow label="作成者" value={channel.createdByUser.displayName} />
             <MetadataRow label="更新日時" value={formatDateTime(channel.updatedAt)} />
           </dl>
-          {isSystemAdmin(currentUser) ? (
-            <div className="mt-6">
-              <ChannelDeleteForm
-                action={deleteChannelAction}
-                channelId={channel.id}
-                forumId={channel.forum.id}
-                initialState={initialChannelDeleteActionState}
-              />
-            </div>
-          ) : null}
         </SectionCard>
       </div>
     </ForumShell>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { Pencil } from "lucide-react";
 import { MarkdownContent } from "@/components/markdown-content";
 import type { FormActionState } from "@/lib/action-state";
 import { ui } from "@/lib/ui-classes";
@@ -26,6 +27,7 @@ type PostInlineEditorProps = Readonly<{
     formData: FormData,
   ) => Promise<FormActionState>;
   initialState: FormActionState;
+  trailingActions?: React.ReactNode;
 }>;
 
 export function PostInlineEditor({
@@ -38,6 +40,7 @@ export function PostInlineEditor({
   editable,
   action,
   initialState,
+  trailingActions,
 }: PostInlineEditorProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [state, formAction] = useActionState(action, initialState);
@@ -50,15 +53,19 @@ export function PostInlineEditor({
             <p className={ui.text.meta}>タイトル</p>
             <h3 className="theme-text mt-2 text-2xl font-semibold">{title}</h3>
           </div>
-          {editable ? (
-            <button
-              className={ui.button.secondary}
-              onClick={() => setIsEditing(true)}
-              type="button"
-            >
-              投稿を編集
-            </button>
-          ) : null}
+          <div className="flex items-center gap-2">
+            {editable ? (
+              <button
+                aria-label="投稿を編集"
+                className={ui.button.iconSecondary}
+                onClick={() => setIsEditing(true)}
+                type="button"
+              >
+                <Pencil aria-hidden="true" size={16} />
+              </button>
+            ) : null}
+            {trailingActions}
+          </div>
         </div>
         <MarkdownContent attachments={attachments} value={bodyMarkdown} />
       </div>

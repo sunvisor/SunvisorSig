@@ -27,13 +27,17 @@ export const ui = {
     primary:
       "theme-primary-button inline-flex items-center justify-center rounded-full px-5 py-2.5 text-sm font-medium text-white transition",
     primaryLink:
-      "theme-primary-button inline-flex items-center rounded-full px-4 py-2 text-sm font-medium !text-white transition",
+      "theme-primary-button inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium !text-white transition",
     secondary:
       "theme-card theme-text-muted inline-flex items-center justify-center rounded-full border px-5 py-2.5 text-sm font-medium transition",
+    iconSecondary:
+      "theme-card theme-text-muted inline-flex size-10 items-center justify-center rounded-full border transition",
     danger:
       "inline-flex items-center rounded-full border border-rose-200 bg-white px-4 py-2 text-sm font-medium text-rose-700 transition hover:border-rose-300 hover:bg-rose-50",
     dangerCompact:
       "rounded-full border border-rose-200 bg-white px-3 py-1 text-xs font-medium text-rose-700 transition hover:border-rose-300 hover:bg-rose-50",
+    iconDanger:
+      "inline-flex size-10 items-center justify-center rounded-full border border-rose-200 bg-white text-rose-700 transition hover:border-rose-300 hover:bg-rose-50",
     modalGhost:
       "inline-flex items-center rounded-full border border-slate-600 px-4 py-2 text-sm font-medium text-white transition hover:border-slate-400 hover:bg-slate-800",
     modalDanger:
