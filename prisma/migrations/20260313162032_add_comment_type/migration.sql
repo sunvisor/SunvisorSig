@@ -1,0 +1,7 @@
+CREATE TYPE "CommentType" AS ENUM ('USER', 'STATUS_CHANGE');
+
+ALTER TABLE "Comment"
+ADD COLUMN "type" "CommentType" NOT NULL DEFAULT 'USER';
+
+ALTER TABLE "DeletedComment"
+ADD COLUMN "type" "CommentType" NOT NULL DEFAULT 'USER';

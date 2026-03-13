@@ -70,6 +70,7 @@ export async function updatePostStatus(formData: FormData) {
       data: {
         postId: post.id,
         authorUserId: currentUser.id,
+        type: "STATUS_CHANGE",
         bodyMarkdown: statusComment,
       },
     });

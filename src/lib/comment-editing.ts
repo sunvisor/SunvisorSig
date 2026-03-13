@@ -46,6 +46,10 @@ export async function updateComment(formData: FormData) {
     throw new AppError("FORBIDDEN", "自分のコメントだけ編集できます。");
   }
 
+  if (comment.type !== "USER") {
+    throw new AppError("FORBIDDEN", "状態変更ログは編集できません。");
+  }
+
   await prisma.comment.update({
     where: { id: comment.id },
     data: {

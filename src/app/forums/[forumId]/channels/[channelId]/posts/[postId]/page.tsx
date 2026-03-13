@@ -117,68 +117,79 @@ export default async function PostPage({ params }: PostPageProps) {
             ) : (
               <div className="grid gap-4">
                 {post.comments.map((comment) => (
-                  <article
-                    key={comment.id}
-                    className="rounded-2xl border border-slate-200 bg-slate-50 p-5"
-                  >
-                    <div className="flex items-center justify-between gap-4">
-                      <div>
-                        <p className="font-medium text-slate-950">
-                          {comment.authorUser.displayName}
-                        </p>
-                        <p className="mt-1 text-xs uppercase tracking-[0.2em] text-slate-400">
-                          {formatDateTime(comment.createdAt)}
-                        </p>
-                      </div>
-                      <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
-                        Files {comment.attachments.length}
+                  comment.type === "STATUS_CHANGE" ? (
+                    <article key={comment.id} className="py-1 text-center">
+                      <p className="text-sm text-slate-500">
+                        {comment.bodyMarkdown}
                       </p>
-                    </div>
-                    <div className="mt-4">
-                      <CommentInlineEditor
-                        action={updateCommentAction}
-                        attachments={comment.attachments}
-                        bodyMarkdown={comment.bodyMarkdown}
-                        channelId={channelId}
-                        commentId={comment.id}
-                        editable={comment.authorUserId === currentUser.id}
-                        forumId={forumId}
-                        initialState={initialCommentEditActionState}
-                        postId={postId}
-                        trailingActions={
-                          comment.authorUserId === currentUser.id || isAdmin ? (
-                            <form action={deleteComment}>
-                              <input name="forumId" type="hidden" value={forumId} />
-                              <input name="channelId" type="hidden" value={channelId} />
-                              <input name="postId" type="hidden" value={postId} />
-                              <input name="commentId" type="hidden" value={comment.id} />
-                              <ConfirmSubmitButton
-                                ariaLabel="コメントを削除"
-                                className={ui.button.iconDanger}
-                                description="添付ファイルがある場合は、その情報も削除待ちデータへ退避されます。"
-                                icon="trash"
-                                message="このコメントを削除しますか？"
-                              />
-                            </form>
-                          ) : null
-                        }
-                      />
-                    </div>
-                    {comment.attachments.length > 0 ? (
-                      <div className="mt-4 grid gap-3">
-                        {comment.attachments.map((attachment) => (
-                          <AttachmentLink
-                            compact
-                            key={attachment.id}
-                            filename={attachment.originalFilename}
-                            mimeType={attachment.mimeType}
-                            sizeBytes={attachment.sizeBytes}
-                            storagePath={attachment.storagePath}
-                          />
-                        ))}
+                      <p className="mt-1 text-xs uppercase tracking-[0.2em] text-slate-400">
+                        {formatDateTime(comment.createdAt)}
+                      </p>
+                    </article>
+                  ) : (
+                    <article
+                      key={comment.id}
+                      className="rounded-2xl border border-slate-200 bg-slate-50 p-5"
+                    >
+                      <div className="flex items-center justify-between gap-4">
+                        <div>
+                          <p className="font-medium text-slate-950">
+                            {comment.authorUser.displayName}
+                          </p>
+                          <p className="mt-1 text-xs uppercase tracking-[0.2em] text-slate-400">
+                            {formatDateTime(comment.createdAt)}
+                          </p>
+                        </div>
+                        <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
+                          Files {comment.attachments.length}
+                        </p>
                       </div>
-                    ) : null}
-                  </article>
+                      <div className="mt-4">
+                        <CommentInlineEditor
+                          action={updateCommentAction}
+                          attachments={comment.attachments}
+                          bodyMarkdown={comment.bodyMarkdown}
+                          channelId={channelId}
+                          commentId={comment.id}
+                          editable={comment.authorUserId === currentUser.id}
+                          forumId={forumId}
+                          initialState={initialCommentEditActionState}
+                          postId={postId}
+                          trailingActions={
+                            comment.authorUserId === currentUser.id || isAdmin ? (
+                              <form action={deleteComment}>
+                                <input name="forumId" type="hidden" value={forumId} />
+                                <input name="channelId" type="hidden" value={channelId} />
+                                <input name="postId" type="hidden" value={postId} />
+                                <input name="commentId" type="hidden" value={comment.id} />
+                                <ConfirmSubmitButton
+                                  ariaLabel="コメントを削除"
+                                  className={ui.button.iconDanger}
+                                  description="添付ファイルがある場合は、その情報も削除待ちデータへ退避されます。"
+                                  icon="trash"
+                                  message="このコメントを削除しますか？"
+                                />
+                              </form>
+                            ) : null
+                          }
+                        />
+                      </div>
+                      {comment.attachments.length > 0 ? (
+                        <div className="mt-4 grid gap-3">
+                          {comment.attachments.map((attachment) => (
+                            <AttachmentLink
+                              compact
+                              key={attachment.id}
+                              filename={attachment.originalFilename}
+                              mimeType={attachment.mimeType}
+                              sizeBytes={attachment.sizeBytes}
+                              storagePath={attachment.storagePath}
+                            />
+                          ))}
+                        </div>
+                      ) : null}
+                    </article>
+                  )
                 ))}
               </div>
             )}
