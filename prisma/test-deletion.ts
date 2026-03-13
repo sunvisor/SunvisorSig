@@ -1,6 +1,6 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import prismaClient from "@prisma/client";
+import { SystemRole, UserStatus } from "@prisma/client";
 import {
   deleteChannelById,
   deleteCommentById,
@@ -9,8 +9,6 @@ import {
   purgeExpiredDeletedData,
 } from "@/lib/deletion-service";
 import { prisma } from "@/lib/prisma";
-
-const { SystemRole, UserStatus } = prismaClient;
 
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) {

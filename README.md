@@ -99,6 +99,26 @@ docker compose down
 
 ## 運用コマンド
 
+## テスト
+
+unit test:
+
+```bash
+npm run test
+```
+
+watch mode:
+
+```bash
+npm run test:watch
+```
+
+通知フローの integration test:
+
+```bash
+npm run db:test-notifications
+```
+
 削除待ちデータの完全削除バッチ:
 
 ```bash

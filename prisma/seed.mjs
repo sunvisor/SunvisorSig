@@ -1,7 +1,5 @@
 import { randomBytes, scryptSync } from "node:crypto";
-import prismaClient from "@prisma/client";
-
-const { PrismaClient, SystemRole, UserStatus } = prismaClient;
+import { PrismaClient, SystemRole, UserStatus } from "@prisma/client";
 
 const prisma = new PrismaClient();
 const SCRYPT_KEY_LENGTH = 64;
@@ -14,6 +12,7 @@ function hashPassword(password) {
 }
 
 async function main() {
+  await prisma.auditLog.deleteMany();
   await prisma.notification.deleteMany();
   await prisma.channelSubscription.deleteMany();
   await prisma.commentAttachment.deleteMany();
