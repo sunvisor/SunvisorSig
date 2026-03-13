@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { AuthStatus } from "@/components/auth-status";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -13,7 +14,14 @@ type RootLayoutProps = Readonly<{
 export default function RootLayout({ children }: RootLayoutProps) {
   return (
     <html lang="ja">
-      <body>{children}</body>
+      <body>
+        <div className="pointer-events-none fixed inset-x-0 top-0 z-50 flex justify-end px-6 py-4">
+          <div className="pointer-events-auto">
+            <AuthStatus />
+          </div>
+        </div>
+        {children}
+      </body>
     </html>
   );
 }
