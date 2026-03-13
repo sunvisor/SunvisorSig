@@ -1,8 +1,9 @@
 import type { Route } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { ForumShell } from "@/components/forum-shell";
 import { PrimaryLink, SectionCard } from "@/components/forum-ui";
 import { SubmitButton } from "@/components/submit-button";
+import { getCurrentUser } from "@/lib/auth";
 import { createChannel } from "@/lib/channel-creation";
 import { getForum } from "@/lib/forum-data";
 import { getForumHeroStyle, getForumPageStyle } from "@/lib/forum-theme";
@@ -14,10 +15,14 @@ type NewChannelPageProps = Readonly<{
 
 export default async function NewChannelPage({ params }: NewChannelPageProps) {
   const { forumId } = await params;
-  const forum = await getForum(forumId);
+  const [forum, currentUser] = await Promise.all([getForum(forumId), getCurrentUser()]);
 
   if (!forum) {
     notFound();
+  }
+
+  if (!currentUser) {
+    redirect("/login");
   }
 
   return (
@@ -37,28 +42,7 @@ export default async function NewChannelPage({ params }: NewChannelPageProps) {
       <SectionCard title="新規チャンネル">
         <form action={createChannel} className={ui.form.layout}>
           <input name="forumId" type="hidden" value={forum.id} />
-          <div className={ui.form.group}>
-            <label className={ui.text.label} htmlFor="createdByUserId">
-              作成者
-            </label>
-            <select
-              className={ui.form.select}
-              defaultValue={
-                forum.members.find((member) => member.role === "ADMIN")?.userId ?? ""
-              }
-              id="createdByUserId"
-              name="createdByUserId"
-              required
-            >
-              {forum.members
-                .filter((member) => member.role === "ADMIN")
-                .map((member) => (
-                  <option key={member.id} value={member.userId}>
-                    {member.user.displayName} ({member.role})
-                  </option>
-                ))}
-            </select>
-          </div>
+          <p className={ui.text.body}>作成者: {currentUser.displayName}</p>
           <div className={ui.form.group}>
             <label className={ui.text.label} htmlFor="name">
               チャンネル名

@@ -1,11 +1,12 @@
 import type { Route } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { ForumForm } from "@/components/forum-form";
 import { ForumShell } from "@/components/forum-shell";
 import { InvitationCreateForm } from "@/components/invitation-create-form";
 import { PrimaryLink, SectionCard } from "@/components/forum-ui";
 import { getActiveUsers, getForum } from "@/lib/forum-data";
+import { getCurrentUser } from "@/lib/auth";
 import { getForumHeroStyle, getForumPageStyle } from "@/lib/forum-theme";
 import {
   addForumMember,
@@ -25,13 +26,20 @@ type ForumSettingsPageProps = Readonly<{
 
 export default async function ForumSettingsPage({ params }: ForumSettingsPageProps) {
   const { forumId } = await params;
-  const [forum, users] = await Promise.all([getForum(forumId), getActiveUsers()]);
+  const [forum, users, currentUser] = await Promise.all([
+    getForum(forumId),
+    getActiveUsers(),
+    getCurrentUser(),
+  ]);
 
   if (!forum) {
     notFound();
   }
 
-  const actingAdminId = forum.members.find((member) => member.role === "ADMIN")?.userId ?? "";
+  if (!currentUser) {
+    redirect("/login");
+  }
+
   const admins = forum.members
     .filter((member) => member.role === "ADMIN")
     .map((member) => ({
@@ -61,13 +69,12 @@ export default async function ForumSettingsPage({ params }: ForumSettingsPagePro
         <SectionCard title="設定内容">
           <ForumForm
             action={updateForum}
-            admins={admins}
             cancelHref={`/forums/${forum.id}` as Route}
+            currentUserName={currentUser.displayName}
             initialValues={{
               id: forum.id,
               name: forum.name,
               description: forum.description,
-              createdByUserId: forum.createdByUserId,
               themeName: forum.themeName,
             }}
             submitLabel="設定を保存"
@@ -81,7 +88,6 @@ export default async function ForumSettingsPage({ params }: ForumSettingsPagePro
           ) : (
             <form action={addForumMember} className={ui.form.layout}>
               <input name="forumId" type="hidden" value={forum.id} />
-              <input name="actingUserId" type="hidden" value={actingAdminId} />
               <div className={ui.form.group}>
                 <label className={ui.text.label} htmlFor="userId">
                   ユーザー
@@ -133,7 +139,6 @@ export default async function ForumSettingsPage({ params }: ForumSettingsPagePro
                 </div>
                 <form action={updateForumMemberRole} className="grid gap-3">
                   <input name="forumId" type="hidden" value={forum.id} />
-                  <input name="actingUserId" type="hidden" value={actingAdminId} />
                   <input name="userId" type="hidden" value={member.userId} />
                   <label className={ui.text.label} htmlFor={`role-${member.id}`}>
                     ロール
@@ -162,7 +167,6 @@ export default async function ForumSettingsPage({ params }: ForumSettingsPagePro
                   ) : (
                     <form action={removeForumMember}>
                       <input name="forumId" type="hidden" value={forum.id} />
-                      <input name="actingUserId" type="hidden" value={actingAdminId} />
                       <input name="userId" type="hidden" value={member.userId} />
                       <ConfirmSubmitButton
                         className={ui.button.dangerCompact}
@@ -183,7 +187,6 @@ export default async function ForumSettingsPage({ params }: ForumSettingsPagePro
         <SectionCard title="招待作成">
           <InvitationCreateForm
             action={createInvitationAction}
-            actingUserId={actingAdminId}
             forumId={forum.id}
             initialState={initialInvitationActionState}
           />
@@ -215,7 +218,6 @@ export default async function ForumSettingsPage({ params }: ForumSettingsPagePro
                       {canCancel ? (
                         <form action={cancelInvitation}>
                           <input name="forumId" type="hidden" value={forum.id} />
-                          <input name="actingUserId" type="hidden" value={actingAdminId} />
                           <input name="invitationId" type="hidden" value={invitation.id} />
                           <ConfirmSubmitButton
                             className={ui.button.dangerCompact}

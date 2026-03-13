@@ -1,12 +1,17 @@
 import type { Route } from "next";
+import { redirect } from "next/navigation";
 import { ForumForm } from "@/components/forum-form";
 import { ForumShell } from "@/components/forum-shell";
 import { PrimaryLink, SectionCard } from "@/components/forum-ui";
-import { getActiveUsers } from "@/lib/forum-data";
+import { getCurrentUser } from "@/lib/auth";
 import { createForum } from "@/lib/forum-management";
 
 export default async function NewForumPage() {
-  const users = await getActiveUsers();
+  const currentUser = await getCurrentUser();
+
+  if (!currentUser) {
+    redirect("/login");
+  }
 
   return (
     <ForumShell
@@ -22,11 +27,8 @@ export default async function NewForumPage() {
       <SectionCard title="新規フォーラム">
         <ForumForm
           action={createForum}
-          admins={users.map((user) => ({
-            id: user.id,
-            displayName: user.displayName,
-          }))}
           cancelHref={"/forums" as Route}
+          currentUserName={currentUser.displayName}
           submitLabel="フォーラムを作成"
         />
       </SectionCard>

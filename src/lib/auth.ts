@@ -130,6 +130,16 @@ export async function getCurrentUser() {
   return user;
 }
 
+export async function requireCurrentUser() {
+  const user = await getCurrentUser();
+
+  if (!user) {
+    redirect("/login" as Route);
+  }
+
+  return user;
+}
+
 export async function loginAction(
   _previousState: LoginActionState,
   formData: FormData,

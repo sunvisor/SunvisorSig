@@ -2,6 +2,7 @@ import type { Route } from "next";
 import { randomBytes } from "node:crypto";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { requireCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { AppError, isAppError, type AppErrorCode } from "@/lib/app-error";
 import { getForumThemePreset } from "@/lib/forum-theme";
@@ -56,10 +57,11 @@ export async function createForum(formData: FormData) {
 
   const name = String(formData.get("name") ?? "").trim();
   const description = normalizeDescription(formData);
-  const createdByUserId = String(formData.get("createdByUserId") ?? "");
   const themeName = String(formData.get("themeName") ?? "").trim();
+  const currentUser = await requireCurrentUser();
+  const createdByUserId = currentUser.id;
 
-  if (!name || !createdByUserId || !themeName) {
+  if (!name || !themeName) {
     throw new Error("必須項目が不足しています。");
   }
 
@@ -98,10 +100,11 @@ export async function updateForum(formData: FormData) {
   const forumId = String(formData.get("forumId") ?? "");
   const name = String(formData.get("name") ?? "").trim();
   const description = normalizeDescription(formData);
-  const createdByUserId = String(formData.get("createdByUserId") ?? "");
   const themeName = String(formData.get("themeName") ?? "").trim();
+  const currentUser = await requireCurrentUser();
+  const createdByUserId = currentUser.id;
 
-  if (!forumId || !name || !createdByUserId || !themeName) {
+  if (!forumId || !name || !themeName) {
     throw new Error("必須項目が不足しています。");
   }
 
@@ -126,11 +129,12 @@ export async function addForumMember(formData: FormData) {
   "use server";
 
   const forumId = String(formData.get("forumId") ?? "");
-  const actingUserId = String(formData.get("actingUserId") ?? "");
   const userId = String(formData.get("userId") ?? "");
   const role = String(formData.get("role") ?? "PARTICIPANT") as ForumRole;
+  const currentUser = await requireCurrentUser();
+  const actingUserId = currentUser.id;
 
-  if (!forumId || !actingUserId || !userId) {
+  if (!forumId || !userId) {
     throw new Error("必須項目が不足しています。");
   }
 
@@ -168,11 +172,12 @@ export async function updateForumMemberRole(formData: FormData) {
   "use server";
 
   const forumId = String(formData.get("forumId") ?? "");
-  const actingUserId = String(formData.get("actingUserId") ?? "");
   const userId = String(formData.get("userId") ?? "");
   const role = String(formData.get("role") ?? "") as ForumRole;
+  const currentUser = await requireCurrentUser();
+  const actingUserId = currentUser.id;
 
-  if (!forumId || !actingUserId || !userId || !role) {
+  if (!forumId || !userId || !role) {
     throw new Error("必須項目が不足しています。");
   }
 
@@ -223,10 +228,11 @@ export async function removeForumMember(formData: FormData) {
   "use server";
 
   const forumId = String(formData.get("forumId") ?? "");
-  const actingUserId = String(formData.get("actingUserId") ?? "");
   const userId = String(formData.get("userId") ?? "");
+  const currentUser = await requireCurrentUser();
+  const actingUserId = currentUser.id;
 
-  if (!forumId || !actingUserId || !userId) {
+  if (!forumId || !userId) {
     throw new Error("必須項目が不足しています。");
   }
 
@@ -274,11 +280,12 @@ export async function createInvitation(formData: FormData) {
   "use server";
 
   const forumId = String(formData.get("forumId") ?? "");
-  const actingUserId = String(formData.get("actingUserId") ?? "");
   const email = normalizeEmail(formData.get("email"));
   const role = String(formData.get("role") ?? "PARTICIPANT") as ForumRole;
+  const currentUser = await requireCurrentUser();
+  const actingUserId = currentUser.id;
 
-  if (!forumId || !actingUserId || !email) {
+  if (!forumId || !email) {
     throw new AppError("INVALID_INPUT", "必須項目が不足しています。");
   }
 
@@ -354,10 +361,11 @@ export async function cancelInvitation(formData: FormData) {
   "use server";
 
   const forumId = String(formData.get("forumId") ?? "");
-  const actingUserId = String(formData.get("actingUserId") ?? "");
   const invitationId = String(formData.get("invitationId") ?? "");
+  const currentUser = await requireCurrentUser();
+  const actingUserId = currentUser.id;
 
-  if (!forumId || !actingUserId || !invitationId) {
+  if (!forumId || !invitationId) {
     throw new AppError("INVALID_INPUT", "必須項目が不足しています。");
   }
 

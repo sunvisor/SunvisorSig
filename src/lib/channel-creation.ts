@@ -1,18 +1,20 @@
 import type { Route } from "next";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { requireCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 export async function createChannel(formData: FormData) {
   "use server";
 
   const forumId = String(formData.get("forumId") ?? "");
-  const createdByUserId = String(formData.get("createdByUserId") ?? "");
   const name = String(formData.get("name") ?? "").trim();
   const descriptionValue = String(formData.get("description") ?? "").trim();
   const description = descriptionValue.length > 0 ? descriptionValue : null;
+  const currentUser = await requireCurrentUser();
+  const createdByUserId = currentUser.id;
 
-  if (!forumId || !createdByUserId || !name) {
+  if (!forumId || !name) {
     throw new Error("必須項目が不足しています。");
   }
 

@@ -1,5 +1,5 @@
 import type { Route } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { AttachmentLink } from "@/components/attachment-link";
 import { CommentComposer } from "@/components/comment-composer";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
@@ -11,6 +11,7 @@ import {
   SectionCard,
 } from "@/components/forum-ui";
 import { MarkdownContent } from "@/components/markdown-content";
+import { getCurrentUser } from "@/lib/auth";
 import { createComment } from "@/lib/comment-creation";
 import { deleteComment } from "@/lib/comment-deletion";
 import { deletePost } from "@/lib/post-deletion";
@@ -24,7 +25,7 @@ type PostPageProps = Readonly<{
 
 export default async function PostPage({ params }: PostPageProps) {
   const { forumId, channelId, postId } = await params;
-  const post = await getPost(postId);
+  const [post, currentUser] = await Promise.all([getPost(postId), getCurrentUser()]);
 
   if (
     !post ||
@@ -32,6 +33,10 @@ export default async function PostPage({ params }: PostPageProps) {
     post.channel.forumId !== forumId
   ) {
     notFound();
+  }
+
+  if (!currentUser) {
+    redirect("/login");
   }
 
   return (
@@ -132,13 +137,8 @@ export default async function PostPage({ params }: PostPageProps) {
             <CommentComposer
               action={createComment}
               channelId={channelId}
+              currentUserName={currentUser.displayName}
               forumId={forumId}
-              members={post.channel.forum.members.map((member) => ({
-                id: member.id,
-                role: member.role,
-                userId: member.userId,
-                displayName: member.user.displayName,
-              }))}
               postId={postId}
             />
           </SectionCard>

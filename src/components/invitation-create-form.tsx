@@ -27,7 +27,6 @@ function InvitationSubmitButton() {
 
 type InvitationCreateFormProps = Readonly<{
   forumId: string;
-  actingUserId: string;
   action: (
     state: InvitationActionState,
     formData: FormData,
@@ -37,7 +36,6 @@ type InvitationCreateFormProps = Readonly<{
 
 export function InvitationCreateForm({
   forumId,
-  actingUserId,
   action,
   initialState,
 }: InvitationCreateFormProps) {
@@ -52,7 +50,6 @@ export function InvitationCreateForm({
   return (
     <form action={formAction} className={ui.form.layout}>
       <input name="forumId" type="hidden" value={forumId} />
-      <input name="actingUserId" type="hidden" value={actingUserId} />
       <div className={ui.form.group}>
         <label className={ui.text.label} htmlFor="invite-email">
           メールアドレス

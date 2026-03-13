@@ -4,27 +4,20 @@ import { useState } from "react";
 import { ui } from "@/lib/ui-classes";
 import { SubmitButton } from "@/components/submit-button";
 
-type MemberOption = {
-  id: string;
-  role: string;
-  userId: string;
-  displayName: string;
-};
-
 type CommentComposerProps = Readonly<{
   forumId: string;
   channelId: string;
   postId: string;
-  members: MemberOption[];
   action: (formData: FormData) => void | Promise<void>;
+  currentUserName: string;
 }>;
 
 export function CommentComposer({
   forumId,
   channelId,
   postId,
-  members,
   action,
+  currentUserName,
 }: CommentComposerProps) {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -35,24 +28,7 @@ export function CommentComposer({
           <input name="forumId" type="hidden" value={forumId} />
           <input name="channelId" type="hidden" value={channelId} />
           <input name="postId" type="hidden" value={postId} />
-          <div className={ui.form.group}>
-            <label className={ui.text.label} htmlFor="commentAuthorUserId">
-              投稿者
-            </label>
-            <select
-              className={ui.form.select}
-              defaultValue={members[0]?.userId ?? ""}
-              id="commentAuthorUserId"
-              name="authorUserId"
-              required
-            >
-              {members.map((member) => (
-                <option key={member.id} value={member.userId}>
-                  {member.displayName} ({member.role})
-                </option>
-              ))}
-            </select>
-          </div>
+          <p className={ui.text.body}>コメント投稿者: {currentUserName}</p>
           <div className={ui.form.group}>
             <label className={ui.text.label} htmlFor="commentBodyMarkdown">
               コメント本文

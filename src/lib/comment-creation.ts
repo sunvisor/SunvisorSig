@@ -1,6 +1,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { revalidatePath } from "next/cache";
+import { requireCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { buildDedupedFilename } from "@/lib/attachment-filename";
 
@@ -10,13 +11,14 @@ export async function createComment(formData: FormData) {
   const forumId = String(formData.get("forumId") ?? "");
   const channelId = String(formData.get("channelId") ?? "");
   const postId = String(formData.get("postId") ?? "");
-  const authorUserId = String(formData.get("authorUserId") ?? "");
   const bodyMarkdown = String(formData.get("bodyMarkdown") ?? "").trim();
+  const currentUser = await requireCurrentUser();
+  const authorUserId = currentUser.id;
   const files = formData
     .getAll("attachments")
     .filter((value): value is File => value instanceof File && value.size > 0);
 
-  if (!forumId || !channelId || !postId || !authorUserId || !bodyMarkdown) {
+  if (!forumId || !channelId || !postId || !bodyMarkdown) {
     throw new Error("必須項目が不足しています。");
   }
 

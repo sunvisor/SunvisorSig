@@ -8,15 +8,11 @@ type ForumFormProps = Readonly<{
   action: (formData: FormData) => Promise<void>;
   cancelHref: Route;
   submitLabel: string;
-  admins: Array<{
-    id: string;
-    displayName: string;
-  }>;
+  currentUserName: string;
   initialValues?: {
     id?: string;
     name?: string;
     description?: string | null;
-    createdByUserId?: string;
     themeName?: string;
   };
 }>;
@@ -25,10 +21,9 @@ export function ForumForm({
   action,
   cancelHref,
   submitLabel,
-  admins,
+  currentUserName,
   initialValues,
 }: ForumFormProps) {
-  const defaultAdminId = initialValues?.createdByUserId ?? admins[0]?.id ?? "";
   const defaultThemeName = initialValues?.themeName ?? forumThemePresets[1].themeName;
 
   return (
@@ -60,24 +55,7 @@ export function ForumForm({
           placeholder="このフォーラムで扱う内容を入力してください。"
         />
       </div>
-      <div className={ui.form.group}>
-        <label className={ui.text.label} htmlFor="createdByUserId">
-          管理者
-        </label>
-        <select
-          className={ui.form.select}
-          defaultValue={defaultAdminId}
-          id="createdByUserId"
-          name="createdByUserId"
-          required
-        >
-          {admins.map((admin) => (
-            <option key={admin.id} value={admin.id}>
-              {admin.displayName}
-            </option>
-          ))}
-        </select>
-      </div>
+      <p className={ui.text.body}>管理者: {currentUserName}</p>
       <div className={ui.form.group}>
         <label className={ui.text.label} htmlFor="themeName">
           カラーテーマ

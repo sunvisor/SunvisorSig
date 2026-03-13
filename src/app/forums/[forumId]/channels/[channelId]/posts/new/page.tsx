@@ -1,8 +1,9 @@
 import type { Route } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { ForumShell } from "@/components/forum-shell";
 import { PrimaryLink, SectionCard } from "@/components/forum-ui";
 import { SubmitButton } from "@/components/submit-button";
+import { getCurrentUser } from "@/lib/auth";
 import { getChannel } from "@/lib/forum-data";
 import { getForumHeroStyle, getForumPageStyle } from "@/lib/forum-theme";
 import { createPost } from "@/lib/post-creation";
@@ -14,10 +15,14 @@ type NewPostPageProps = Readonly<{
 
 export default async function NewPostPage({ params }: NewPostPageProps) {
   const { forumId, channelId } = await params;
-  const channel = await getChannel(channelId);
+  const [channel, currentUser] = await Promise.all([getChannel(channelId), getCurrentUser()]);
 
   if (!channel || channel.forumId !== forumId) {
     notFound();
+  }
+
+  if (!currentUser) {
+    redirect("/login");
   }
 
   return (
@@ -46,24 +51,7 @@ export default async function NewPostPage({ params }: NewPostPageProps) {
         <form action={createPost} className={ui.form.layout}>
           <input name="forumId" type="hidden" value={forumId} />
           <input name="channelId" type="hidden" value={channelId} />
-          <div className={ui.form.group}>
-            <label className={ui.text.label} htmlFor="authorUserId">
-              投稿者
-            </label>
-            <select
-              className={ui.form.select}
-              defaultValue={channel.forum.members[0]?.userId ?? ""}
-              id="authorUserId"
-              name="authorUserId"
-              required
-            >
-              {channel.forum.members.map((member) => (
-                <option key={member.id} value={member.userId}>
-                  {member.user.displayName} ({member.role})
-                </option>
-              ))}
-            </select>
-          </div>
+          <p className={ui.text.body}>投稿者: {currentUser.displayName}</p>
           <div className={ui.form.group}>
             <label className={ui.text.label} htmlFor="title">
               タイトル

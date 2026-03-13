@@ -4,6 +4,7 @@ import path from "node:path";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { buildDedupedFilename } from "@/lib/attachment-filename";
+import { requireCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 export async function createPost(formData: FormData) {
@@ -11,14 +12,15 @@ export async function createPost(formData: FormData) {
 
   const forumId = String(formData.get("forumId") ?? "");
   const channelId = String(formData.get("channelId") ?? "");
-  const authorUserId = String(formData.get("authorUserId") ?? "");
   const title = String(formData.get("title") ?? "").trim();
   const bodyMarkdown = String(formData.get("bodyMarkdown") ?? "").trim();
+  const currentUser = await requireCurrentUser();
+  const authorUserId = currentUser.id;
   const files = formData
     .getAll("attachments")
     .filter((value): value is File => value instanceof File && value.size > 0);
 
-  if (!forumId || !channelId || !authorUserId || !title || !bodyMarkdown) {
+  if (!forumId || !channelId || !title || !bodyMarkdown) {
     throw new Error("必須項目が不足しています。");
   }
 
