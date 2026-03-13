@@ -1,6 +1,7 @@
 import type { Route } from "next";
 import { notFound, redirect } from "next/navigation";
 import { AttachmentLink } from "@/components/attachment-link";
+import { CommentInlineEditor } from "@/components/comment-inline-editor";
 import { CommentComposer } from "@/components/comment-composer";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { ForumShell } from "@/components/forum-shell";
@@ -10,11 +11,13 @@ import {
   PrimaryLink,
   SectionCard,
 } from "@/components/forum-ui";
-import { MarkdownContent } from "@/components/markdown-content";
+import { PostInlineEditor } from "@/components/post-inline-editor";
+import { initialCommentEditActionState, updateCommentAction } from "@/lib/comment-editing";
 import { getCurrentUser, isSystemAdmin } from "@/lib/auth";
 import { createComment } from "@/lib/comment-creation";
 import { deleteComment } from "@/lib/comment-deletion";
 import { deletePost } from "@/lib/post-deletion";
+import { initialPostEditActionState, updatePostAction } from "@/lib/post-editing";
 import { formatDateTime } from "@/lib/date-time";
 import { getPost, isForumMember } from "@/lib/forum-data";
 import { getForumHeroStyle, getForumPageStyle } from "@/lib/forum-theme";
@@ -70,9 +73,16 @@ export default async function PostPage({ params }: PostPageProps) {
       <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
         <div className="grid gap-6">
           <SectionCard title="本文">
-            <MarkdownContent
+            <PostInlineEditor
+              action={updatePostAction}
               attachments={post.attachments}
-              value={post.bodyMarkdown}
+              bodyMarkdown={post.bodyMarkdown}
+              channelId={channelId}
+              editable={post.authorUserId === currentUser.id}
+              forumId={forumId}
+              initialState={initialPostEditActionState}
+              postId={postId}
+              title={post.title}
             />
           </SectionCard>
           <SectionCard title="コメント">
@@ -119,9 +129,16 @@ export default async function PostPage({ params }: PostPageProps) {
                       </div>
                     </div>
                     <div className="mt-4">
-                      <MarkdownContent
+                      <CommentInlineEditor
+                        action={updateCommentAction}
                         attachments={comment.attachments}
-                        value={comment.bodyMarkdown}
+                        bodyMarkdown={comment.bodyMarkdown}
+                        channelId={channelId}
+                        commentId={comment.id}
+                        editable={comment.authorUserId === currentUser.id}
+                        forumId={forumId}
+                        initialState={initialCommentEditActionState}
+                        postId={postId}
                       />
                     </div>
                     {comment.attachments.length > 0 ? (
