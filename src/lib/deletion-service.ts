@@ -27,6 +27,11 @@ type DeleteChannelInput = {
   actingUserId: string;
 };
 
+type DeleteForumInput = {
+  forumId: string;
+  actingUserId: string;
+};
+
 async function exists(pathname: string) {
   try {
     await access(pathname);
@@ -306,109 +311,35 @@ export async function deleteChannelById({
     throw new AppError("FORBIDDEN", "全体管理者のみチャンネルを削除できます。");
   }
 
-  const { deletedAt, purgeAfter } = buildRetentionWindow();
-  const allPosts = channel.posts;
-  const allComments = allPosts.flatMap((post) => post.comments);
-  const deletedAttachments = [
-    ...allPosts.flatMap((post) =>
-      post.attachments.map((attachment) => ({
-        originalAttachmentId: attachment.id,
-        ownerType: "POST" as const,
-        ownerId: post.id,
-        storagePath: attachment.storagePath,
-        originalFilename: attachment.originalFilename,
-        mimeType: attachment.mimeType,
-        sizeBytes: attachment.sizeBytes,
-        deletedAt,
-        purgeAfter,
-      })),
-    ),
-    ...allComments.flatMap((comment) =>
-      comment.attachments.map((attachment) => ({
-        originalAttachmentId: attachment.id,
-        ownerType: "COMMENT" as const,
-        ownerId: comment.id,
-        storagePath: attachment.storagePath,
-        originalFilename: attachment.originalFilename,
-        mimeType: attachment.mimeType,
-        sizeBytes: attachment.sizeBytes,
-        deletedAt,
-        purgeAfter,
-      })),
-    ),
-  ];
+  await prisma.channel.delete({
+    where: { id: channel.id },
+  });
+}
 
-  await prisma.$transaction(async (tx) => {
-    if (deletedAttachments.length > 0) {
-      await tx.deletedAttachment.createMany({
-        data: deletedAttachments,
-      });
-    }
+export async function deleteForumById({
+  forumId,
+  actingUserId,
+}: DeleteForumInput) {
+  const forum = await prisma.forum.findUnique({
+    where: { id: forumId },
+    select: { id: true },
+  });
 
-    if (allComments.length > 0) {
-      await tx.deletedComment.createMany({
-        data: allComments.map((comment) => ({
-          originalCommentId: comment.id,
-          postId: comment.postId,
-          authorUserId: comment.authorUserId,
-          bodyMarkdown: comment.bodyMarkdown,
-          deletedByUserId: actingUserId,
-          deletedAt,
-          purgeAfter,
-          createdAt: comment.createdAt,
-        })),
-      });
-    }
+  if (!forum) {
+    throw new Error("フォーラムが見つかりません。");
+  }
 
-    if (allPosts.length > 0) {
-      await tx.deletedPost.createMany({
-        data: allPosts.map((post) => ({
-          originalPostId: post.id,
-          channelId: post.channelId,
-          authorUserId: post.authorUserId,
-          title: post.title,
-          bodyMarkdown: post.bodyMarkdown,
-          deletedByUserId: actingUserId,
-          deletedAt,
-          purgeAfter,
-          createdAt: post.createdAt,
-        })),
-      });
-    }
+  const actingUser = await prisma.user.findUnique({
+    where: { id: actingUserId },
+    select: { systemRole: true },
+  });
 
-    await tx.commentAttachment.deleteMany({
-      where: {
-        comment: {
-          post: {
-            channelId: channel.id,
-          },
-        },
-      },
-    });
+  if (actingUser?.systemRole !== "ADMIN") {
+    throw new AppError("FORBIDDEN", "全体管理者のみフォーラムを削除できます。");
+  }
 
-    await tx.comment.deleteMany({
-      where: {
-        post: {
-          channelId: channel.id,
-        },
-      },
-    });
-
-    await tx.postAttachment.deleteMany({
-      where: {
-        post: {
-          channelId: channel.id,
-        },
-      },
-    });
-
-    await tx.post.deleteMany({
-      where: { channelId: channel.id },
-    });
-
-    await tx.channel.delete({
-      where: { id: channel.id },
-    });
+  await prisma.forum.delete({
+    where: { id: forum.id },
   });
 }
 

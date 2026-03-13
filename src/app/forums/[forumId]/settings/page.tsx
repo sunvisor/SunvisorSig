@@ -2,6 +2,7 @@ import type { Route } from "next";
 import { notFound, redirect } from "next/navigation";
 import { ForumForm } from "@/components/forum-form";
 import { ForumMemberAddForm } from "@/components/forum-member-add-form";
+import { ForumDeleteForm } from "@/components/forum-delete-form";
 import { ForumMemberRemoveForm } from "@/components/forum-member-remove-form";
 import { ForumShell } from "@/components/forum-shell";
 import { InvitationCancelForm } from "@/components/invitation-cancel-form";
@@ -22,6 +23,10 @@ import {
   updateForumAction,
 } from "@/lib/forum-management";
 import { formatDateTime } from "@/lib/date-time";
+import {
+  deleteForumAction,
+  initialForumDeleteActionState,
+} from "@/lib/forum-deletion";
 import { ui } from "@/lib/ui-classes";
 
 type ForumSettingsPageProps = Readonly<{
@@ -197,6 +202,18 @@ export default async function ForumSettingsPage({ params }: ForumSettingsPagePro
           )}
         </SectionCard>
       </div>
+      <SectionCard title="危険操作">
+        <div className="grid gap-4">
+          <p className={ui.text.body}>
+            フォーラムを削除すると、配下のチャンネル、投稿、コメント、添付ファイル、参加者関連付け、招待がまとめて物理削除されます。
+          </p>
+          <ForumDeleteForm
+            action={deleteForumAction}
+            forumId={forum.id}
+            initialState={initialForumDeleteActionState}
+          />
+        </div>
+      </SectionCard>
     </ForumShell>
   );
 }

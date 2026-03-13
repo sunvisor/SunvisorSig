@@ -5,9 +5,8 @@ import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import type { FormActionState } from "@/lib/action-state";
 import { ui } from "@/lib/ui-classes";
 
-type ChannelDeleteFormProps = Readonly<{
+type ForumDeleteFormProps = Readonly<{
   forumId: string;
-  channelId: string;
   action: (
     state: FormActionState,
     formData: FormData,
@@ -15,24 +14,22 @@ type ChannelDeleteFormProps = Readonly<{
   initialState: FormActionState;
 }>;
 
-export function ChannelDeleteForm({
+export function ForumDeleteForm({
   forumId,
-  channelId,
   action,
   initialState,
-}: ChannelDeleteFormProps) {
+}: ForumDeleteFormProps) {
   const [state, formAction] = useActionState(action, initialState);
 
   return (
     <form action={formAction} className="grid gap-2">
       <input name="forumId" type="hidden" value={forumId} />
-      <input name="channelId" type="hidden" value={channelId} />
       <ConfirmSubmitButton
         className={ui.button.danger}
-        description="配下の投稿、コメント、添付ファイルも含めて物理削除されます。"
-        message="このチャンネルを削除しますか？"
+        description="配下のチャンネル、投稿、コメント、添付ファイル、参加者関連付け、招待がまとめて物理削除されます。"
+        message="このフォーラムを削除しますか？"
       >
-        チャンネル削除
+        フォーラム削除
       </ConfirmSubmitButton>
       {state.message ? (
         <p className={state.ok ? "text-sm font-medium text-emerald-700" : "text-sm font-medium text-rose-700"}>

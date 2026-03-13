@@ -4,6 +4,7 @@ import prismaClient from "@prisma/client";
 import {
   deleteChannelById,
   deleteCommentById,
+  deleteForumById,
   deletePostById,
   purgeExpiredDeletedData,
 } from "@/lib/deletion-service";
@@ -300,28 +301,82 @@ async function main() {
     const deletedChannelPost = await prisma.deletedPost.findUnique({
       where: { originalPostId: channelDeletionPost.id },
     });
-    assert(deletedChannelPost, "deleted post for channel deletion was not created");
+    assert(!deletedChannelPost, "channel deletion should not archive posts");
 
     const deletedChannelComment = await prisma.deletedComment.findUnique({
       where: { originalCommentId: channelDeletionComment.id },
     });
-    assert(deletedChannelComment, "deleted comment for channel deletion was not created");
+    assert(!deletedChannelComment, "channel deletion should not archive comments");
 
     const deletedChannelPostAttachment = await prisma.deletedAttachment.findUnique({
       where: { originalAttachmentId: channelPostAttachment.id },
     });
-    assert(
-      deletedChannelPostAttachment,
-      "deleted post attachment for channel deletion was not created",
-    );
+    assert(!deletedChannelPostAttachment, "channel deletion should not archive post attachments");
 
     const deletedChannelCommentAttachment = await prisma.deletedAttachment.findUnique({
       where: { originalAttachmentId: channelCommentAttachment.id },
     });
     assert(
-      deletedChannelCommentAttachment,
-      "deleted comment attachment for channel deletion was not created",
+      !deletedChannelCommentAttachment,
+      "channel deletion should not archive comment attachments",
     );
+
+    const forumDeletionForum = await prisma.forum.create({
+      data: {
+        name: `Deletion Forum Root ${suffix}`,
+        createdByUserId: admin.id,
+      },
+    });
+
+    const forumDeletionChannel = await prisma.channel.create({
+      data: {
+        forumId: forumDeletionForum.id,
+        name: `Deletion Forum Channel ${suffix}`,
+        createdByUserId: admin.id,
+      },
+    });
+
+    const forumDeletionPost = await prisma.post.create({
+      data: {
+        channelId: forumDeletionChannel.id,
+        authorUserId: admin.id,
+        title: "Forum deletion target",
+        bodyMarkdown: "forum deletion",
+      },
+    });
+
+    const forumDeletionComment = await prisma.comment.create({
+      data: {
+        postId: forumDeletionPost.id,
+        authorUserId: member.id,
+        bodyMarkdown: "forum nested comment",
+      },
+    });
+
+    await deleteForumById({
+      forumId: forumDeletionForum.id,
+      actingUserId: admin.id,
+    });
+
+    const removedForum = await prisma.forum.findUnique({
+      where: { id: forumDeletionForum.id },
+    });
+    assert(!removedForum, "forum still exists after deletion");
+
+    const removedForumChannel = await prisma.channel.findUnique({
+      where: { id: forumDeletionChannel.id },
+    });
+    assert(!removedForumChannel, "forum child channel still exists after deletion");
+
+    const removedForumPost = await prisma.post.findUnique({
+      where: { id: forumDeletionPost.id },
+    });
+    assert(!removedForumPost, "forum child post still exists after deletion");
+
+    const removedForumComment = await prisma.comment.findUnique({
+      where: { id: forumDeletionComment.id },
+    });
+    assert(!removedForumComment, "forum child comment still exists after deletion");
 
     await prisma.deletedAttachment.updateMany({
       where: {
@@ -330,8 +385,6 @@ async function main() {
             deletedCommentAttachment.id,
             deletedPostAttachment.id,
             deletedNestedAttachment.id,
-            deletedChannelPostAttachment.id,
-            deletedChannelCommentAttachment.id,
           ],
         },
       },
@@ -343,7 +396,7 @@ async function main() {
     await prisma.deletedComment.updateMany({
       where: {
         id: {
-          in: [deletedComment.id, deletedNestedComment.id, deletedChannelComment.id],
+          in: [deletedComment.id, deletedNestedComment.id],
         },
       },
       data: {
@@ -357,28 +410,18 @@ async function main() {
         purgeAfter: new Date(Date.now() - 60_000),
       },
     });
-
-    await prisma.deletedPost.update({
-      where: { id: deletedChannelPost.id },
-      data: {
-        purgeAfter: new Date(Date.now() - 60_000),
-      },
-    });
-
     await Promise.all([
       createUploadFile(deletedCommentAttachment.storagePath),
       createUploadFile(deletedPostAttachment.storagePath),
       createUploadFile(deletedNestedAttachment.storagePath),
-      createUploadFile(deletedChannelPostAttachment.storagePath),
-      createUploadFile(deletedChannelCommentAttachment.storagePath),
     ]);
 
     const purgeResult = await purgeExpiredDeletedData(new Date());
 
-    assert(purgeResult.deletedAttachmentRecords >= 5, "attachment purge did not run");
-    assert(purgeResult.deletedComments >= 3, "comment purge did not run");
-    assert(purgeResult.deletedPosts >= 2, "post purge did not run");
-    assert(purgeResult.deletedFiles >= 5, "file purge did not remove local files");
+    assert(purgeResult.deletedAttachmentRecords >= 3, "attachment purge did not run");
+    assert(purgeResult.deletedComments >= 2, "comment purge did not run");
+    assert(purgeResult.deletedPosts >= 1, "post purge did not run");
+    assert(purgeResult.deletedFiles >= 3, "file purge did not remove local files");
 
     console.log(
       JSON.stringify(
