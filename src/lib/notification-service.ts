@@ -101,7 +101,7 @@ export async function createPostMentionNotifications(params: {
     where: {
       channelId: params.channelId,
       userId: {
-        notIn: [...notifiedUserIds, params.actorUserId],
+        notIn: [...existingUserIds, ...notifiedUserIds, params.actorUserId],
       },
     },
     select: {
@@ -164,7 +164,7 @@ export async function createCommentNotifications(params: {
     where: {
       commentId: params.commentId,
       type: {
-        in: ["COMMENT_ON_POST", "MENTION_IN_COMMENT"],
+        in: ["COMMENT_ON_POST", "MENTION_IN_COMMENT", "CHANNEL_COMMENT"],
       },
     },
     select: {
@@ -177,9 +177,19 @@ export async function createCommentNotifications(params: {
       notification.type === "COMMENT_ON_POST" &&
       notification.userId === params.postAuthorUserId,
   );
+  const existingCommentNotificationUserIds = new Set(
+    existingMentionNotifications
+      .filter((notification) => notification.type === "COMMENT_ON_POST")
+      .map((notification) => notification.userId),
+  );
   const existingMentionUserIds = new Set(
     existingMentionNotifications
       .filter((notification) => notification.type === "MENTION_IN_COMMENT")
+      .map((notification) => notification.userId),
+  );
+  const existingChannelCommentUserIds = new Set(
+    existingMentionNotifications
+      .filter((notification) => notification.type === "CHANNEL_COMMENT")
       .map((notification) => notification.userId),
   );
 
@@ -190,6 +200,7 @@ export async function createCommentNotifications(params: {
       if (
         participantUserId === params.actorUserId ||
         mentionedUserIds.has(participantUserId) ||
+        existingCommentNotificationUserIds.has(participantUserId) ||
         (participantUserId === params.postAuthorUserId && hasExistingCommentNotification)
       ) {
         continue;
@@ -234,7 +245,11 @@ export async function createCommentNotifications(params: {
         where: {
           channelId: params.channelId,
           userId: {
-            notIn: [...notifiedUserIds, params.actorUserId],
+            notIn: [
+              ...notifiedUserIds,
+              ...existingChannelCommentUserIds,
+              params.actorUserId,
+            ],
           },
         },
         select: {

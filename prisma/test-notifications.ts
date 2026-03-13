@@ -1,5 +1,10 @@
 import { SystemRole, UserStatus } from "@prisma/client";
-import { createCommentNotifications, createPostMentionNotifications } from "@/lib/notification-service";
+import {
+  createCommentNotifications,
+  createPostMentionNotifications,
+  getUnreadNotifications,
+  markPostNotificationsAsRead,
+} from "@/lib/notification-service";
 import { prisma } from "@/lib/prisma";
 
 function assert(condition: unknown, message: string): asserts condition {
@@ -194,6 +199,24 @@ async function main() {
       postNotifiedUserIds.includes(subscriber.id),
       "subscriber should receive channel post notification",
     );
+    assert(
+      !postNotifiedUserIds.includes(admin.id),
+      "actor should not receive post notifications",
+    );
+
+    const repeatedPostNotifiedUserIds = await createPostMentionNotifications({
+      forumId: forum.id,
+      postId: mentionPost.id,
+      channelId: channel.id,
+      actorUserId: admin.id,
+      actorDisplayName: admin.displayName,
+      bodyMarkdown: mentionPost.bodyMarkdown,
+    });
+
+    assert(
+      repeatedPostNotifiedUserIds.length === 0,
+      "re-running the same post notification should not duplicate recipients",
+    );
 
     const priorComment = await prisma.comment.create({
       data: {
@@ -238,6 +261,26 @@ async function main() {
       commentNotifiedUserIds.includes(subscriber.id),
       "subscriber should receive channel comment notification",
     );
+    assert(
+      !commentNotifiedUserIds.includes(admin.id),
+      "actor should not receive comment notifications",
+    );
+
+    const repeatedCommentNotifiedUserIds = await createCommentNotifications({
+      forumId: forum.id,
+      postId: post.id,
+      channelId: channel.id,
+      postAuthorUserId: author.id,
+      commentId: newComment.id,
+      actorUserId: admin.id,
+      actorDisplayName: admin.displayName,
+      bodyMarkdown: newComment.bodyMarkdown,
+    });
+
+    assert(
+      repeatedCommentNotifiedUserIds.length === 0,
+      "re-running the same comment notification should not duplicate recipients",
+    );
 
     const subscriberNotifications = await prisma.notification.findMany({
       where: {
@@ -260,10 +303,32 @@ async function main() {
       "subscriber is missing CHANNEL_COMMENT notification",
     );
 
+    const unreadBeforeRead = await getUnreadNotifications(author.id);
+    assert(
+      unreadBeforeRead.some((item) => item.postId === post.id),
+      "post author should have unread notifications before mark-as-read",
+    );
+
+    await markPostNotificationsAsRead(author.id, post.id);
+
+    const unreadAfterRead = await getUnreadNotifications(author.id);
+    assert(
+      !unreadAfterRead.some((item) => item.postId === post.id),
+      "post notifications should disappear after mark-as-read",
+    );
+
+    const mentionUnread = await getUnreadNotifications(mentionUser.id);
+    assert(
+      mentionUnread.every((item) => item.userId === mentionUser.id),
+      "unread notifications should only return the requested user's items",
+    );
+
     console.log(
       JSON.stringify({
         postNotifications: postNotifiedUserIds.length,
         commentNotifications: commentNotifiedUserIds.length,
+        repeatedPostNotifications: repeatedPostNotifiedUserIds.length,
+        repeatedCommentNotifications: repeatedCommentNotifiedUserIds.length,
         subscriberNotifications: subscriberNotifications.map((item) => item.type),
         priorCommentId: priorComment.id,
       }),
