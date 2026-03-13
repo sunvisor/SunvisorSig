@@ -141,4 +141,5 @@ npm run db:test-deletion
 
 - コメント削除で `DeletedComment` と `DeletedAttachment` に退避されること
 - 投稿削除で `DeletedPost` / `DeletedComment` / `DeletedAttachment` に退避されること
+- 一般ユーザーは他人の投稿・コメント、およびチャンネル・フォーラムを削除できないこと
 - purge 実行で期限切れ退避データとローカルファイルが削除されること

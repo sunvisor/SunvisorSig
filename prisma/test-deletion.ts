@@ -8,6 +8,7 @@ import {
   deletePostById,
   purgeExpiredDeletedData,
 } from "@/lib/deletion-service";
+import { isAppError } from "@/lib/app-error";
 import { prisma } from "@/lib/prisma";
 
 function assert(condition: unknown, message: string): asserts condition {
@@ -153,6 +154,14 @@ async function main() {
       },
     });
 
+    const forbiddenComment = await prisma.comment.create({
+      data: {
+        postId: commentDeletionPost.id,
+        authorUserId: admin.id,
+        bodyMarkdown: "admin owned comment",
+      },
+    });
+
     await deleteCommentById({
       forumId: forum.id,
       channelId: channel.id,
@@ -160,6 +169,38 @@ async function main() {
       commentId: commentDeletionComment.id,
       actingUserId: member.id,
     });
+
+    await deleteCommentById({
+      forumId: forum.id,
+      channelId: channel.id,
+      postId: commentDeletionPost.id,
+      commentId: forbiddenComment.id,
+      actingUserId: admin.id,
+    });
+
+    const blockedComment = await prisma.comment.create({
+      data: {
+        postId: commentDeletionPost.id,
+        authorUserId: admin.id,
+        bodyMarkdown: "cannot remove this",
+      },
+    });
+
+    await deleteCommentById({
+      forumId: forum.id,
+      channelId: channel.id,
+      postId: commentDeletionPost.id,
+      commentId: blockedComment.id,
+      actingUserId: member.id,
+    }).then(
+      () => {
+        throw new Error("member should not delete another user's comment");
+      },
+      (error) => {
+        assert(isAppError(error), "forbidden comment deletion should raise AppError");
+        assert(error.code === "FORBIDDEN", "forbidden comment deletion should use FORBIDDEN");
+      },
+    );
 
     const deletedComment = await prisma.deletedComment.findUnique({
       where: { originalCommentId: commentDeletionComment.id },
@@ -212,6 +253,21 @@ async function main() {
         sizeBytes: 4,
       },
     });
+
+    await deletePostById({
+      forumId: forum.id,
+      channelId: channel.id,
+      postId: postDeletionPost.id,
+      actingUserId: member.id,
+    }).then(
+      () => {
+        throw new Error("member should not delete another user's post");
+      },
+      (error) => {
+        assert(isAppError(error), "forbidden post deletion should raise AppError");
+        assert(error.code === "FORBIDDEN", "forbidden post deletion should use FORBIDDEN");
+      },
+    );
 
     await deletePostById({
       forumId: forum.id,
@@ -288,6 +344,20 @@ async function main() {
     await deleteChannelById({
       forumId: forum.id,
       channelId: channelDeletionChannel.id,
+      actingUserId: member.id,
+    }).then(
+      () => {
+        throw new Error("member should not delete channel");
+      },
+      (error) => {
+        assert(isAppError(error), "forbidden channel deletion should raise AppError");
+        assert(error.code === "FORBIDDEN", "forbidden channel deletion should use FORBIDDEN");
+      },
+    );
+
+    await deleteChannelById({
+      forumId: forum.id,
+      channelId: channelDeletionChannel.id,
       actingUserId: admin.id,
     });
 
@@ -350,6 +420,19 @@ async function main() {
         bodyMarkdown: "forum nested comment",
       },
     });
+
+    await deleteForumById({
+      forumId: forumDeletionForum.id,
+      actingUserId: member.id,
+    }).then(
+      () => {
+        throw new Error("member should not delete forum");
+      },
+      (error) => {
+        assert(isAppError(error), "forbidden forum deletion should raise AppError");
+        assert(error.code === "FORBIDDEN", "forbidden forum deletion should use FORBIDDEN");
+      },
+    );
 
     await deleteForumById({
       forumId: forumDeletionForum.id,
@@ -425,6 +508,7 @@ async function main() {
       JSON.stringify(
         {
           status: "ok",
+          permissionChecks: "ok",
           deletedCommentId: commentDeletionComment.id,
           deletedPostId: postDeletionPost.id,
           purgeResult,
