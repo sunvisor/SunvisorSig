@@ -1,15 +1,20 @@
 "use client";
 
-import { useState } from "react";
-import { ui } from "@/lib/ui-classes";
+import { useActionState, useState } from "react";
 import { SubmitButton } from "@/components/submit-button";
+import type { FormActionState } from "@/lib/action-state";
+import { ui } from "@/lib/ui-classes";
 
 type CommentComposerProps = Readonly<{
   forumId: string;
   channelId: string;
   postId: string;
-  action: (formData: FormData) => void | Promise<void>;
+  action: (
+    state: FormActionState,
+    formData: FormData,
+  ) => Promise<FormActionState>;
   currentUserName: string;
+  initialState: FormActionState;
 }>;
 
 export function CommentComposer({
@@ -18,13 +23,15 @@ export function CommentComposer({
   postId,
   action,
   currentUserName,
+  initialState,
 }: CommentComposerProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [state, formAction] = useActionState(action, initialState);
 
   return (
     <div className="mt-6">
       {isOpen ? (
-        <form action={action} className={ui.form.panel}>
+        <form action={formAction} className={ui.form.panel}>
           <input name="forumId" type="hidden" value={forumId} />
           <input name="channelId" type="hidden" value={channelId} />
           <input name="postId" type="hidden" value={postId} />
@@ -55,6 +62,9 @@ export function CommentComposer({
               type="file"
             />
           </div>
+          {state.message ? (
+            <p className="text-sm font-medium text-rose-700">{state.message}</p>
+          ) : null}
           <div className={ui.form.actions}>
             <SubmitButton>コメントする</SubmitButton>
             <button

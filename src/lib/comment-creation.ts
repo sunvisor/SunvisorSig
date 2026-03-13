@@ -1,9 +1,15 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
+import type { Route } from "next";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { initialFormActionState, type FormActionState } from "@/lib/action-state";
+import { AppError, isAppError } from "@/lib/app-error";
 import { requireCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { buildDedupedFilename } from "@/lib/attachment-filename";
+
+export const initialCommentCreateActionState = initialFormActionState;
 
 export async function createComment(formData: FormData) {
   "use server";
@@ -19,7 +25,7 @@ export async function createComment(formData: FormData) {
     .filter((value): value is File => value instanceof File && value.size > 0);
 
   if (!forumId || !channelId || !postId || !bodyMarkdown) {
-    throw new Error("必須項目が不足しています。");
+    throw new AppError("INVALID_INPUT", "必須項目が不足しています。");
   }
 
   const post = await prisma.post.findUnique({
@@ -34,7 +40,7 @@ export async function createComment(formData: FormData) {
     post.channelId !== channelId ||
     post.channel.forumId !== forumId
   ) {
-    throw new Error("投稿が見つかりません。");
+    throw new AppError("INVALID_INPUT", "投稿が見つかりません。");
   }
 
   const membership = await prisma.forumMember.findUnique({
@@ -47,7 +53,7 @@ export async function createComment(formData: FormData) {
   });
 
   if (!membership) {
-    throw new Error("このフォーラムの参加者のみコメントできます。");
+    throw new AppError("FORBIDDEN", "このフォーラムの参加者のみコメントできます。");
   }
 
   const comment = await prisma.comment.create({
@@ -90,4 +96,33 @@ export async function createComment(formData: FormData) {
   }
 
   revalidatePath(`/forums/${forumId}/channels/${channelId}/posts/${postId}`);
+  redirect(`/forums/${forumId}/channels/${channelId}/posts/${postId}` as Route);
+}
+
+export async function createCommentAction(
+  _previousState: FormActionState,
+  formData: FormData,
+): Promise<FormActionState> {
+  "use server";
+
+  try {
+    await createComment(formData);
+
+    return {
+      ok: true,
+      message: "",
+    };
+  } catch (error) {
+    if (isAppError(error)) {
+      return {
+        ok: false,
+        code: error.code,
+        message: error.message,
+      };
+    }
+
+    throw error;
+  }
+
+  return initialCommentCreateActionState;
 }

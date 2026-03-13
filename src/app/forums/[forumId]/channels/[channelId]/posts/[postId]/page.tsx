@@ -16,7 +16,10 @@ import { PostStatusBadge } from "@/components/post-status-badge";
 import { PostStatusForm } from "@/components/post-status-form";
 import { initialCommentEditActionState, updateCommentAction } from "@/lib/comment-editing";
 import { getCurrentUser, isSystemAdmin } from "@/lib/auth";
-import { createComment } from "@/lib/comment-creation";
+import {
+  createCommentAction,
+  initialCommentCreateActionState,
+} from "@/lib/comment-creation";
 import { deleteComment } from "@/lib/comment-deletion";
 import { deletePost } from "@/lib/post-deletion";
 import { initialPostEditActionState, updatePostAction } from "@/lib/post-editing";
@@ -194,10 +197,11 @@ export default async function PostPage({ params }: PostPageProps) {
               </div>
             )}
             <CommentComposer
-              action={createComment}
+              action={createCommentAction}
               channelId={channelId}
               currentUserName={currentUser.displayName}
               forumId={forumId}
+              initialState={initialCommentCreateActionState}
               postId={postId}
             />
           </SectionCard>
