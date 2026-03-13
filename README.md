@@ -131,6 +131,12 @@ npm run db:test-activation
 npm run db:test-profile
 ```
 
+フォーラム管理ルールの integration test:
+
+```bash
+npm run db:test-forum-management
+```
+
 削除待ちデータの完全削除バッチ:
 
 ```bash
