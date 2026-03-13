@@ -15,17 +15,39 @@ npm install
 
 ### ローカルで起動する場合
 
-1. 開発サーバーを起動します。
+1. PostgreSQL を起動します。
+
+```bash
+docker compose up -d db
+```
+
+2. Prisma Client を生成し、migration を適用します。
+
+```bash
+npm run db:generate
+npm run db:migrate
+```
+
+3. 開発サーバーを起動します。
 
 ```bash
 npm run dev
 ```
 
-2. ブラウザで `http://localhost:3000` を開きます。
-3. `Hello World` が表示されれば起動完了です。
+4. ブラウザで `http://localhost:3000/forums` を開きます。
+5. フォーラム一覧が表示されれば起動完了です。
 
 補足:
 `next dev` / `next build` は Next.js の既定どおり Turbopack を使用します。
+
+Prisma schema を変更した場合:
+
+```bash
+npm run db:generate
+npm run db:migrate
+```
+
+その後、`npm run dev` を再起動してください。
 
 ### Docker で起動する場合
 
@@ -35,8 +57,8 @@ npm run dev
 docker compose up --build
 ```
 
-2. ブラウザで `http://localhost:3000` を開きます。
-3. `Hello World` が表示されれば起動完了です。
+2. ブラウザで `http://localhost:3000/forums` を開きます。
+3. フォーラム一覧が表示されれば起動完了です。
 
 補足:
 - PostgreSQL はホスト側で `localhost:55432` に公開されます
