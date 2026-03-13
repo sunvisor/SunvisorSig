@@ -1,7 +1,6 @@
-import type { Route } from "next";
-import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { initialFormActionState, type FormActionState } from "@/lib/action-state";
+import { savePostAttachments } from "@/lib/attachment-storage";
 import { requireCurrentUser } from "@/lib/auth";
 import { AppError, isAppError } from "@/lib/app-error";
 import {
@@ -23,6 +22,9 @@ export async function updatePost(formData: FormData) {
   const title = String(formData.get("title") ?? "").trim();
   const bodyMarkdown = String(formData.get("bodyMarkdown") ?? "").trim();
   const currentUser = await requireCurrentUser();
+  const files = formData
+    .getAll("attachments")
+    .filter((value): value is File => value instanceof File && value.size > 0);
 
   if (!forumId || !channelId || !postId || !title || !bodyMarkdown) {
     throw new AppError("INVALID_INPUT", "必須項目が不足しています。");
@@ -32,6 +34,11 @@ export async function updatePost(formData: FormData) {
     where: { id: postId },
     include: {
       channel: true,
+      attachments: {
+        select: {
+          originalFilename: true,
+        },
+      },
     },
   });
 
@@ -51,6 +58,20 @@ export async function updatePost(formData: FormData) {
     },
   });
 
+  await savePostAttachments({
+    postId: post.id,
+    files,
+    existingNames: post.attachments.map((attachment) => attachment.originalFilename),
+    createAttachment: async (attachment) => {
+      await prisma.postAttachment.create({
+        data: {
+          postId: post.id,
+          ...attachment,
+        },
+      });
+    },
+  });
+
   const notifiedUserIds = await createPostMentionNotifications({
     forumId,
     postId: post.id,
@@ -66,7 +87,6 @@ export async function updatePost(formData: FormData) {
 
   revalidatePath(`/forums/${forumId}/channels/${channelId}`);
   revalidatePath(`/forums/${forumId}/channels/${channelId}/posts/${postId}`);
-  redirect(`/forums/${forumId}/channels/${channelId}/posts/${postId}` as Route);
 }
 
 export async function updatePostAction(
@@ -77,6 +97,11 @@ export async function updatePostAction(
 
   try {
     await updatePost(formData);
+
+    return {
+      ok: true,
+      message: "投稿を更新しました。",
+    };
   } catch (error) {
     if (isAppError(error)) {
       return {
@@ -86,8 +111,9 @@ export async function updatePostAction(
       };
     }
 
-  throw error;
+    return {
+      ok: false,
+      message: "投稿の更新に失敗しました。",
+    };
   }
-
-  return initialFormActionState;
 }

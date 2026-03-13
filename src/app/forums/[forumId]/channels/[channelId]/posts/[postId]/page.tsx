@@ -1,19 +1,11 @@
 import type { Route } from "next";
 import { notFound, redirect } from "next/navigation";
-import { AttachmentLink } from "@/components/attachment-link";
 import { CommentComposer } from "@/components/comment-composer";
-import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { ForumShell } from "@/components/forum-shell";
 import { NotificationReadTracker } from "@/components/notification-read-tracker";
 import { PostCommentsPanel } from "@/components/post-comments-panel";
-import {
-  MetadataRow,
-  PrimaryLink,
-  SectionCard,
-} from "@/components/forum-ui";
-import { PostInlineEditor } from "@/components/post-inline-editor";
-import { PostStatusBadge } from "@/components/post-status-badge";
-import { PostStatusForm } from "@/components/post-status-form";
+import { PrimaryLink, SectionCard } from "@/components/forum-ui";
+import { PostBodyPanel, PostInfoPanel } from "@/components/post-details-panel";
 import { initialCommentEditActionState, updateCommentAction } from "@/lib/comment-editing";
 import { getCurrentUser, isSystemAdmin } from "@/lib/auth";
 import {
@@ -21,17 +13,19 @@ import {
   initialCommentCreateActionState,
 } from "@/lib/comment-creation";
 import { deleteComment } from "@/lib/comment-deletion";
+import {
+  deleteCommentAttachment,
+  deletePostAttachment,
+} from "@/lib/attachment-editing";
 import { deletePost } from "@/lib/post-deletion";
 import { initialPostEditActionState, updatePostAction } from "@/lib/post-editing";
 import {
   initialPostStatusActionState,
   updatePostStatusAction,
 } from "@/lib/post-status-editing";
-import { formatDateTime } from "@/lib/date-time";
-import { serializeComment } from "@/lib/activity-presenter";
+import { serializeComment, serializePostDetails } from "@/lib/activity-presenter";
 import { getPost, isForumMember } from "@/lib/forum-data";
 import { getForumHeroStyle, getForumPageStyle } from "@/lib/forum-theme";
-import { ui } from "@/lib/ui-classes";
 
 type PostPageProps = Readonly<{
   params: Promise<{ forumId: string; channelId: string; postId: string }>;
@@ -84,41 +78,24 @@ export default async function PostPage({ params }: PostPageProps) {
       <NotificationReadTracker postId={postId} />
       <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
         <div className="grid gap-6">
-          <SectionCard title="本文">
-            <PostInlineEditor
-              action={updatePostAction}
-              attachments={post.attachments}
-              bodyMarkdown={post.bodyMarkdown}
-              channelId={channelId}
-              editable={post.authorUserId === currentUser.id}
-              forumId={forumId}
-              initialState={initialPostEditActionState}
-              postId={postId}
-              trailingActions={
-                post.authorUserId === currentUser.id || isAdmin ? (
-                  <form action={deletePost}>
-                    <input name="forumId" type="hidden" value={forumId} />
-                    <input name="channelId" type="hidden" value={channelId} />
-                    <input name="postId" type="hidden" value={postId} />
-                    <ConfirmSubmitButton
-                      ariaLabel="投稿を削除"
-                      className={ui.button.iconDanger}
-                      description="投稿本体、投稿添付、配下コメント、コメント添付が削除待ちデータへ退避された後に削除されます。"
-                      icon="trash"
-                      message="この投稿を削除しますか？"
-                    />
-                  </form>
-                ) : null
-              }
-              title={post.title}
-            />
-          </SectionCard>
+          <PostBodyPanel
+            channelId={channelId}
+            currentUserId={currentUser.id}
+            deleteAttachmentAction={deletePostAttachment}
+            deletePostAction={deletePost}
+            forumId={forumId}
+            isAdmin={isAdmin}
+            post={serializePostDetails(post)}
+            updatePostAction={updatePostAction}
+            updatePostInitialState={initialPostEditActionState}
+          />
           <SectionCard title="コメント">
             <PostCommentsPanel
               channelId={channelId}
               comments={post.comments.map(serializeComment)}
               currentUserId={currentUser.id}
               deleteCommentAction={deleteComment}
+              deleteCommentAttachmentAction={deleteCommentAttachment}
               forumId={forumId}
               isAdmin={isAdmin}
               postId={postId}
@@ -135,45 +112,17 @@ export default async function PostPage({ params }: PostPageProps) {
             />
           </SectionCard>
         </div>
-        <SectionCard title="投稿情報">
-          <dl className="grid gap-3">
-            <MetadataRow label="投稿者" value={post.authorUser.displayName} />
-            {post.status ? (
-              <MetadataRow label="状態" value={<PostStatusBadge status={post.status} />} />
-            ) : null}
-            <MetadataRow label="添付数" value={post.attachments.length} />
-            <MetadataRow label="コメント数" value={post.comments.length} />
-            <MetadataRow label="作成日時" value={formatDateTime(post.createdAt)} />
-            <MetadataRow label="更新日時" value={formatDateTime(post.updatedAt)} />
-          </dl>
-          <div className="mt-6">
-            <h3 className="text-sm font-semibold text-slate-950">状態を変更</h3>
-            <p className="mt-1 text-sm text-slate-600">
-              フォーラム参加者であれば、だれでも状態を更新できます。
-            </p>
-            <div className="mt-3">
-              <PostStatusForm
-                action={updatePostStatusAction}
-                channelId={channelId}
-                currentStatus={post.status}
-                forumId={forumId}
-                initialState={initialPostStatusActionState}
-                postId={postId}
-              />
-            </div>
-          </div>
-          <div className="mt-4 grid gap-3">
-            {post.attachments.map((attachment) => (
-              <AttachmentLink
-                key={attachment.id}
-                filename={attachment.originalFilename}
-                mimeType={attachment.mimeType}
-                sizeBytes={attachment.sizeBytes}
-                storagePath={attachment.storagePath}
-              />
-            ))}
-          </div>
-        </SectionCard>
+        <PostInfoPanel
+          channelId={channelId}
+          currentUserId={currentUser.id}
+          deleteAttachmentAction={deletePostAttachment}
+          deletePostAction={deletePost}
+          forumId={forumId}
+          isAdmin={isAdmin}
+          post={serializePostDetails(post)}
+          updateStatusAction={updatePostStatusAction}
+          updateStatusInitialState={initialPostStatusActionState}
+        />
       </div>
     </ForumShell>
   );

@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { Pencil } from "lucide-react";
 import { MarkdownContent } from "@/components/markdown-content";
 import type { FormActionState } from "@/lib/action-state";
@@ -26,6 +26,7 @@ type PostInlineEditorProps = Readonly<{
     state: FormActionState,
     formData: FormData,
   ) => Promise<FormActionState>;
+  deleteAttachmentAction?: (formData: FormData) => Promise<void>;
   initialState: FormActionState;
   trailingActions?: React.ReactNode;
 }>;
@@ -39,15 +40,29 @@ export function PostInlineEditor({
   attachments,
   editable,
   action,
+  deleteAttachmentAction,
   initialState,
   trailingActions,
 }: PostInlineEditorProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [state, formAction] = useActionState(action, initialState);
 
+  useEffect(() => {
+    if (state.ok) {
+      const timer = window.setTimeout(() => {
+        setIsEditing(false);
+        window.dispatchEvent(new Event(`post-details:refresh:${postId}`));
+      }, 0);
+
+      return () => {
+        window.clearTimeout(timer);
+      };
+    }
+  }, [postId, state.ok]);
+
   if (!editable || !isEditing) {
     return (
-      <div className="grid gap-4">
+      <div className="grid gap-4" data-post-editor-state="idle">
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className={ui.text.meta}>タイトル</p>
@@ -67,13 +82,33 @@ export function PostInlineEditor({
             {trailingActions}
           </div>
         </div>
-        <MarkdownContent attachments={attachments} value={bodyMarkdown} />
+        <MarkdownContent
+          attachmentDeleteConfig={
+            editable && deleteAttachmentAction
+              ? {
+                  action: deleteAttachmentAction,
+                  ariaLabel: "投稿添付を削除",
+                  message: "この添付ファイルを削除しますか？",
+                  description:
+                    "削除した添付ファイルを本文で参照している場合、その参照は Missing 表示になります。",
+                  buildFields: (attachment) => ({
+                    forumId,
+                    channelId,
+                    postId,
+                    attachmentId: attachment.id,
+                  }),
+                }
+              : undefined
+          }
+          attachments={attachments}
+          value={bodyMarkdown}
+        />
       </div>
     );
   }
 
   return (
-    <form action={formAction} className={ui.form.layout}>
+    <form action={formAction} className={ui.form.layout} data-post-editor-state="editing">
       <input name="forumId" type="hidden" value={forumId} />
       <input name="channelId" type="hidden" value={channelId} />
       <input name="postId" type="hidden" value={postId} />
@@ -100,6 +135,18 @@ export function PostInlineEditor({
           id={`post-body-${postId}`}
           name="bodyMarkdown"
           required
+        />
+      </div>
+      <div className={ui.form.group}>
+        <label className={ui.text.label} htmlFor={`post-attachments-${postId}`}>
+          添付ファイルを追加
+        </label>
+        <input
+          className={ui.form.fileInput}
+          id={`post-attachments-${postId}`}
+          multiple
+          name="attachments"
+          type="file"
         />
       </div>
       {state.message ? (

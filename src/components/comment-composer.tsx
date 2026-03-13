@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { SubmitButton } from "@/components/submit-button";
 import type { FormActionState } from "@/lib/action-state";
 import { ui } from "@/lib/ui-classes";
@@ -27,6 +27,19 @@ export function CommentComposer({
 }: CommentComposerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [state, formAction] = useActionState(action, initialState);
+
+  useEffect(() => {
+    if (state.ok) {
+      const timer = window.setTimeout(() => {
+        setIsOpen(false);
+        window.dispatchEvent(new Event(`post-comments:refresh:${postId}`));
+      }, 0);
+
+      return () => {
+        window.clearTimeout(timer);
+      };
+    }
+  }, [postId, state.ok]);
 
   return (
     <div className="mt-6">

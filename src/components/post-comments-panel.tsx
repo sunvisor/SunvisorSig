@@ -22,6 +22,7 @@ type PostCommentsPanelProps = Readonly<{
   ) => Promise<FormActionState>;
   updateCommentInitialState: FormActionState;
   deleteCommentAction: (formData: FormData) => Promise<void>;
+  deleteCommentAttachmentAction: (formData: FormData) => Promise<void>;
 }>;
 
 export function PostCommentsPanel({
@@ -34,6 +35,7 @@ export function PostCommentsPanel({
   updateCommentAction,
   updateCommentInitialState,
   deleteCommentAction,
+  deleteCommentAttachmentAction,
 }: PostCommentsPanelProps) {
   const [items, setItems] = useState(comments);
 
@@ -58,13 +60,22 @@ export function PostCommentsPanel({
   useEffect(() => {
     const eventSource = new EventSource(`/api/posts/${postId}/stream`);
     const handleRefresh = () => {
+      if (document.querySelector("[data-comment-editor-state='editing']")) {
+        return;
+      }
+
+      void refreshComments();
+    };
+    const handleForcedRefresh = () => {
       void refreshComments();
     };
 
     eventSource.addEventListener("refresh", handleRefresh);
+    window.addEventListener(`post-comments:refresh:${postId}`, handleForcedRefresh);
 
     return () => {
       eventSource.removeEventListener("refresh", handleRefresh);
+      window.removeEventListener(`post-comments:refresh:${postId}`, handleForcedRefresh);
       eventSource.close();
     };
   }, [postId, refreshComments]);
@@ -115,6 +126,7 @@ export function PostCommentsPanel({
                 forumId={forumId}
                 initialState={updateCommentInitialState}
                 postId={postId}
+                deleteAttachmentAction={deleteCommentAttachmentAction}
                 trailingActions={
                   comment.authorUserId === currentUserId || isAdmin ? (
                     <form action={deleteCommentAction}>
@@ -140,6 +152,25 @@ export function PostCommentsPanel({
                   <AttachmentLink
                     compact
                     key={attachment.id}
+                    deleteAction={
+                      comment.authorUserId === currentUserId
+                        ? deleteCommentAttachmentAction
+                        : undefined
+                    }
+                    deleteAriaLabel="コメント添付を削除"
+                    deleteDescription="削除した添付ファイルを本文で参照している場合、その参照は Missing 表示になります。"
+                    deleteFields={
+                      comment.authorUserId === currentUserId
+                        ? {
+                            forumId,
+                            channelId,
+                            postId,
+                            commentId: comment.id,
+                            attachmentId: attachment.id,
+                          }
+                        : undefined
+                    }
+                    deleteMessage="この添付ファイルを削除しますか？"
                     filename={attachment.originalFilename}
                     mimeType={attachment.mimeType}
                     sizeBytes={attachment.sizeBytes}

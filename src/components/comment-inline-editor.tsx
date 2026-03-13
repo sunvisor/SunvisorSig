@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { Pencil } from "lucide-react";
 import { MarkdownContent } from "@/components/markdown-content";
 import type { FormActionState } from "@/lib/action-state";
@@ -26,6 +26,7 @@ type CommentInlineEditorProps = Readonly<{
     state: FormActionState,
     formData: FormData,
   ) => Promise<FormActionState>;
+  deleteAttachmentAction?: (formData: FormData) => Promise<void>;
   initialState: FormActionState;
   trailingActions?: React.ReactNode;
 }>;
@@ -39,15 +40,29 @@ export function CommentInlineEditor({
   attachments,
   editable,
   action,
+  deleteAttachmentAction,
   initialState,
   trailingActions,
 }: CommentInlineEditorProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [state, formAction] = useActionState(action, initialState);
 
+  useEffect(() => {
+    if (state.ok) {
+      const timer = window.setTimeout(() => {
+        setIsEditing(false);
+        window.dispatchEvent(new Event(`post-comments:refresh:${postId}`));
+      }, 0);
+
+      return () => {
+        window.clearTimeout(timer);
+      };
+    }
+  }, [postId, state.ok]);
+
   if (!editable || !isEditing) {
     return (
-      <div className="grid gap-4">
+      <div className="grid gap-4" data-comment-editor-state="idle">
         <div className="flex items-start justify-end gap-2">
           {editable ? (
             <button
@@ -61,13 +76,38 @@ export function CommentInlineEditor({
           ) : null}
           {trailingActions}
         </div>
-        <MarkdownContent attachments={attachments} value={bodyMarkdown} />
+        <MarkdownContent
+          attachmentDeleteConfig={
+            editable && deleteAttachmentAction
+              ? {
+                  action: deleteAttachmentAction,
+                  ariaLabel: "コメント添付を削除",
+                  message: "この添付ファイルを削除しますか？",
+                  description:
+                    "削除した添付ファイルを本文で参照している場合、その参照は Missing 表示になります。",
+                  buildFields: (attachment) => ({
+                    forumId,
+                    channelId,
+                    postId,
+                    commentId,
+                    attachmentId: attachment.id,
+                  }),
+                }
+              : undefined
+          }
+          attachments={attachments}
+          value={bodyMarkdown}
+        />
       </div>
     );
   }
 
   return (
-    <form action={formAction} className={ui.form.layout}>
+    <form
+      action={formAction}
+      className={ui.form.layout}
+      data-comment-editor-state="editing"
+    >
       <input name="forumId" type="hidden" value={forumId} />
       <input name="channelId" type="hidden" value={channelId} />
       <input name="postId" type="hidden" value={postId} />
@@ -82,6 +122,18 @@ export function CommentInlineEditor({
           id={`comment-body-${commentId}`}
           name="bodyMarkdown"
           required
+        />
+      </div>
+      <div className={ui.form.group}>
+        <label className={ui.text.label} htmlFor={`comment-attachments-${commentId}`}>
+          添付ファイルを追加
+        </label>
+        <input
+          className={ui.form.fileInput}
+          id={`comment-attachments-${commentId}`}
+          multiple
+          name="attachments"
+          type="file"
         />
       </div>
       {state.message ? (

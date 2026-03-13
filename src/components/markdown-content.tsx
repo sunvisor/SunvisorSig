@@ -3,6 +3,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
 type AttachmentRef = {
+  id: string;
   originalFilename: string;
   storagePath: string;
   mimeType: string;
@@ -12,6 +13,13 @@ type AttachmentRef = {
 type MarkdownContentProps = Readonly<{
   value: string;
   attachments?: AttachmentRef[];
+  attachmentDeleteConfig?: {
+    action: (formData: FormData) => Promise<void>;
+    ariaLabel: string;
+    message: string;
+    description?: string;
+    buildFields: (attachment: AttachmentRef) => Record<string, string>;
+  };
 }>;
 
 function MissingAttachmentChip({ filename }: Readonly<{ filename: string }>) {
@@ -25,6 +33,7 @@ function MissingAttachmentChip({ filename }: Readonly<{ filename: string }>) {
 export function MarkdownContent({
   value,
   attachments = [],
+  attachmentDeleteConfig,
 }: MarkdownContentProps) {
   const attachmentMap = new Map(
     attachments.map((attachment) => [attachment.originalFilename, attachment]),
@@ -47,6 +56,15 @@ export function MarkdownContent({
               return (
                 <AttachmentLink
                   compact
+                  deleteAction={attachmentDeleteConfig?.action}
+                  deleteAriaLabel={attachmentDeleteConfig?.ariaLabel}
+                  deleteDescription={attachmentDeleteConfig?.description}
+                  deleteFields={
+                    attachmentDeleteConfig
+                      ? attachmentDeleteConfig.buildFields(attachment)
+                      : undefined
+                  }
+                  deleteMessage={attachmentDeleteConfig?.message}
                   filename={attachment.originalFilename}
                   mimeType={attachment.mimeType}
                   sizeBytes={attachment.sizeBytes}

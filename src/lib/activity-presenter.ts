@@ -29,6 +29,26 @@ export type ChannelPostListItem = {
   updatedAtLabel: string;
 };
 
+export type PostDetailsItem = {
+  id: string;
+  title: string;
+  bodyMarkdown: string;
+  status: string | null;
+  authorUserId: string;
+  authorDisplayName: string;
+  attachmentCount: number;
+  commentCount: number;
+  createdAtLabel: string;
+  updatedAtLabel: string;
+  attachments: Array<{
+    id: string;
+    originalFilename: string;
+    storagePath: string;
+    mimeType: string;
+    sizeBytes: number;
+  }>;
+};
+
 export function serializeComment(comment: {
   id: string;
   type: "USER" | "STATUS_CHANGE";
@@ -85,5 +105,40 @@ export function serializeChannelPost(params: {
     commentCount: post.comments.length,
     attachmentCount: post.attachments.length,
     updatedAtLabel: formatDateTime(post.updatedAt),
+  };
+}
+
+export function serializePostDetails(post: {
+  id: string;
+  title: string;
+  bodyMarkdown: string;
+  status: string | null;
+  authorUserId: string;
+  createdAt: Date;
+  updatedAt: Date;
+  authorUser: {
+    displayName: string;
+  };
+  attachments: Array<{
+    id: string;
+    originalFilename: string;
+    storagePath: string;
+    mimeType: string;
+    sizeBytes: number;
+  }>;
+  comments: Array<unknown>;
+}): PostDetailsItem {
+  return {
+    id: post.id,
+    title: post.title,
+    bodyMarkdown: post.bodyMarkdown,
+    status: post.status,
+    authorUserId: post.authorUserId,
+    authorDisplayName: post.authorUser.displayName,
+    attachmentCount: post.attachments.length,
+    commentCount: post.comments.length,
+    createdAtLabel: formatDateTime(post.createdAt),
+    updatedAtLabel: formatDateTime(post.updatedAt),
+    attachments: post.attachments,
   };
 }

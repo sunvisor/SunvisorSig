@@ -1,10 +1,7 @@
-import { mkdir, writeFile } from "node:fs/promises";
-import path from "node:path";
-import type { Route } from "next";
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { initialFormActionState, type FormActionState } from "@/lib/action-state";
 import { AppError, isAppError } from "@/lib/app-error";
+import { saveCommentAttachments } from "@/lib/attachment-storage";
 import { requireCurrentUser } from "@/lib/auth";
 import {
   publishChannelActivity,
@@ -13,7 +10,6 @@ import {
 } from "@/lib/notification-events";
 import { createCommentNotifications } from "@/lib/notification-service";
 import { prisma } from "@/lib/prisma";
-import { buildDedupedFilename } from "@/lib/attachment-filename";
 
 export const initialCommentCreateActionState = initialFormActionState;
 
@@ -70,36 +66,18 @@ export async function createComment(formData: FormData) {
     },
   });
 
-  if (files.length > 0) {
-    const uploadDir = path.join(
-      process.cwd(),
-      "public",
-      "uploads",
-      "comments",
-      comment.id,
-    );
-    const usedNames = new Set<string>();
-
-    await mkdir(uploadDir, { recursive: true });
-
-    for (const file of files) {
-      const originalFilename = buildDedupedFilename(file.name, usedNames);
-      const storagePath = `/uploads/comments/${comment.id}/${originalFilename}`;
-      const buffer = Buffer.from(await file.arrayBuffer());
-
-      await writeFile(path.join(uploadDir, originalFilename), buffer);
-
+  await saveCommentAttachments({
+    commentId: comment.id,
+    files,
+    createAttachment: async (attachment) => {
       await prisma.commentAttachment.create({
         data: {
           commentId: comment.id,
-          storagePath,
-          originalFilename,
-          mimeType: file.type || "application/octet-stream",
-          sizeBytes: buffer.byteLength,
+          ...attachment,
         },
       });
-    }
-  }
+    },
+  });
 
   const notifiedUserIds = await createCommentNotifications({
     forumId,
@@ -117,7 +95,6 @@ export async function createComment(formData: FormData) {
   publishChannelActivity(channelId);
 
   revalidatePath(`/forums/${forumId}/channels/${channelId}/posts/${postId}`);
-  redirect(`/forums/${forumId}/channels/${channelId}/posts/${postId}` as Route);
 }
 
 export async function createCommentAction(
@@ -128,6 +105,11 @@ export async function createCommentAction(
 
   try {
     await createComment(formData);
+
+    return {
+      ok: true,
+      message: "コメントを投稿しました。",
+    };
   } catch (error) {
     if (isAppError(error)) {
       return {
@@ -137,8 +119,9 @@ export async function createCommentAction(
       };
     }
 
-    throw error;
+    return {
+      ok: false,
+      message: "コメントの投稿に失敗しました。",
+    };
   }
-
-  return initialCommentCreateActionState;
 }

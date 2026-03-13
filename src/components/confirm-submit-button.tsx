@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Trash2 } from "lucide-react";
+import { Trash2, X } from "lucide-react";
 import { ui } from "@/lib/ui-classes";
 
 type ConfirmSubmitButtonProps = Readonly<{
@@ -10,8 +10,9 @@ type ConfirmSubmitButtonProps = Readonly<{
   ariaLabel?: string;
   className?: string;
   description?: string;
-  icon?: "trash";
+  icon?: "trash" | "x";
   message: string;
+  onConfirm?: () => void;
 }>;
 
 export function ConfirmSubmitButton({
@@ -21,6 +22,7 @@ export function ConfirmSubmitButton({
   description,
   icon,
   message,
+  onConfirm,
 }: ConfirmSubmitButtonProps) {
   const buttonRef = useRef<HTMLButtonElement>(null);
   const [isOpen, setIsOpen] = useState(false);
@@ -35,6 +37,7 @@ export function ConfirmSubmitButton({
         type="button"
       >
         {icon === "trash" ? <Trash2 aria-hidden="true" size={16} /> : null}
+        {icon === "x" ? <X aria-hidden="true" size={16} /> : null}
         {children}
       </button>
       {isOpen && typeof document !== "undefined"
@@ -67,6 +70,7 @@ export function ConfirmSubmitButton({
                     className={ui.button.modalDanger}
                     onClick={() => {
                       setIsOpen(false);
+                      onConfirm?.();
                       buttonRef.current?.form?.requestSubmit();
                     }}
                     type="button"
