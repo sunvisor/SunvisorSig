@@ -114,6 +114,61 @@ export const getChannel = cache(async (channelId: string) => {
   });
 });
 
+export const getChannelWithPostSearch = cache(async (channelId: string, query: string) => {
+  const normalizedQuery = query.trim();
+
+  return prisma.channel.findUnique({
+    where: { id: channelId },
+    include: {
+      forum: {
+        include: {
+          members: {
+            include: {
+              user: true,
+            },
+            orderBy: { joinedAt: "asc" },
+          },
+        },
+      },
+      createdByUser: true,
+      posts: {
+        where: normalizedQuery
+          ? {
+              OR: [
+                {
+                  title: {
+                    contains: normalizedQuery,
+                    mode: "insensitive",
+                  },
+                },
+                {
+                  bodyMarkdown: {
+                    contains: normalizedQuery,
+                    mode: "insensitive",
+                  },
+                },
+              ],
+            }
+          : undefined,
+        orderBy: { updatedAt: "desc" },
+        include: {
+          authorUser: true,
+          attachments: true,
+          comments: {
+            include: {
+              _count: {
+                select: {
+                  attachments: true,
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+});
+
 export const getPost = cache(async (postId: string) => {
   return prisma.post.findUnique({
     where: { id: postId },

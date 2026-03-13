@@ -10,17 +10,23 @@ import {
   initialChannelDeleteActionState,
 } from "@/lib/channel-deletion";
 import { formatDateTime } from "@/lib/date-time";
-import { getChannel, isForumMember } from "@/lib/forum-data";
+import { getChannelWithPostSearch, isForumMember } from "@/lib/forum-data";
 import { getForumHeroStyle, getForumPageStyle } from "@/lib/forum-theme";
 import { ui } from "@/lib/ui-classes";
 
 type ChannelPageProps = Readonly<{
   params: Promise<{ forumId: string; channelId: string }>;
+  searchParams: Promise<{ q?: string }>;
 }>;
 
-export default async function ChannelPage({ params }: ChannelPageProps) {
+export default async function ChannelPage({ params, searchParams }: ChannelPageProps) {
   const { forumId, channelId } = await params;
-  const [channel, currentUser] = await Promise.all([getChannel(channelId), getCurrentUser()]);
+  const { q = "" } = await searchParams;
+  const query = q.trim();
+  const [channel, currentUser] = await Promise.all([
+    getChannelWithPostSearch(channelId, query),
+    getCurrentUser(),
+  ]);
 
   if (!channel || channel.forumId !== forumId) {
     notFound();
@@ -61,10 +67,36 @@ export default async function ChannelPage({ params }: ChannelPageProps) {
     >
       <div className={ui.page.twoColumnGrid}>
         <SectionCard title="投稿一覧">
+          <form action="" className="mb-5 grid gap-3 md:grid-cols-[minmax(0,1fr)_auto_auto]">
+            <input
+              className={ui.form.input}
+              defaultValue={query}
+              name="q"
+              placeholder="投稿タイトルや本文を検索"
+              type="search"
+            />
+            <button className={ui.button.primary} type="submit">
+              検索
+            </button>
+            {query ? (
+              <PrimaryLink href={`/forums/${channel.forum.id}/channels/${channel.id}` as Route}>
+                クリア
+              </PrimaryLink>
+            ) : null}
+          </form>
+          {query ? (
+            <p className={`${ui.text.meta} mb-4`}>
+              &quot;{query}&quot; の検索結果: {channel.posts.length} 件
+            </p>
+          ) : null}
           {channel.posts.length === 0 ? (
             <EmptyState
-              title="投稿がありません"
-              description="最初の投稿を作成すると、ここにスレッド一覧が表示されます。"
+              title={query ? "一致する投稿がありません" : "投稿がありません"}
+              description={
+                query
+                  ? "検索条件を変えるか、キーワードをクリアしてください。"
+                  : "最初の投稿を作成すると、ここにスレッド一覧が表示されます。"
+              }
             />
           ) : (
             <div className="grid gap-4">
