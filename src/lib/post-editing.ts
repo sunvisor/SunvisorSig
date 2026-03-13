@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { initialFormActionState, type FormActionState } from "@/lib/action-state";
 import { requireCurrentUser } from "@/lib/auth";
 import { AppError, isAppError } from "@/lib/app-error";
+import { createPostMentionNotifications } from "@/lib/notification-service";
 import { prisma } from "@/lib/prisma";
 
 export const initialPostEditActionState = initialFormActionState;
@@ -43,6 +44,14 @@ export async function updatePost(formData: FormData) {
       title,
       bodyMarkdown,
     },
+  });
+
+  await createPostMentionNotifications({
+    forumId,
+    postId: post.id,
+    actorUserId: currentUser.id,
+    actorDisplayName: currentUser.displayName,
+    bodyMarkdown,
   });
 
   revalidatePath(`/forums/${forumId}/channels/${channelId}`);

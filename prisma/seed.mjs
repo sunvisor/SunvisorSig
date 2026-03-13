@@ -14,6 +14,7 @@ function hashPassword(password) {
 }
 
 async function main() {
+  await prisma.notification.deleteMany();
   await prisma.commentAttachment.deleteMany();
   await prisma.comment.deleteMany();
   await prisma.postAttachment.deleteMany();
@@ -28,6 +29,7 @@ async function main() {
       data: {
         displayName: "Sunvisor Admin",
         email: "admin@example.com",
+        mentionHandle: "admin",
         passwordHash: hashPassword("password123"),
         systemRole: SystemRole.ADMIN,
         status: UserStatus.ACTIVE,
@@ -37,6 +39,7 @@ async function main() {
       data: {
         displayName: "Acme Customer",
         email: "acme@example.com",
+        mentionHandle: "acme",
         passwordHash: hashPassword("password123"),
         systemRole: SystemRole.USER,
         status: UserStatus.ACTIVE,
@@ -46,6 +49,7 @@ async function main() {
       data: {
         displayName: "Globex Customer",
         email: "globex@example.com",
+        mentionHandle: "globex",
         passwordHash: hashPassword("password123"),
         systemRole: SystemRole.USER,
         status: UserStatus.ACTIVE,

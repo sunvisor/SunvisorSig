@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { initialFormActionState, type FormActionState } from "@/lib/action-state";
 import { AppError, isAppError } from "@/lib/app-error";
 import { requireCurrentUser } from "@/lib/auth";
+import { createCommentNotifications } from "@/lib/notification-service";
 import { prisma } from "@/lib/prisma";
 import { buildDedupedFilename } from "@/lib/attachment-filename";
 
@@ -94,6 +95,16 @@ export async function createComment(formData: FormData) {
       });
     }
   }
+
+  await createCommentNotifications({
+    forumId,
+    postId,
+    postAuthorUserId: post.authorUserId,
+    commentId: comment.id,
+    actorUserId: currentUser.id,
+    actorDisplayName: currentUser.displayName,
+    bodyMarkdown,
+  });
 
   revalidatePath(`/forums/${forumId}/channels/${channelId}/posts/${postId}`);
   redirect(`/forums/${forumId}/channels/${channelId}/posts/${postId}` as Route);

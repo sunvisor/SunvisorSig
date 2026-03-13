@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { initialFormActionState, type FormActionState } from "@/lib/action-state";
 import { requireCurrentUser } from "@/lib/auth";
 import { AppError, isAppError } from "@/lib/app-error";
+import { createCommentNotifications } from "@/lib/notification-service";
 import { prisma } from "@/lib/prisma";
 
 export const initialCommentEditActionState = initialFormActionState;
@@ -55,6 +56,17 @@ export async function updateComment(formData: FormData) {
     data: {
       bodyMarkdown,
     },
+  });
+
+  await createCommentNotifications({
+    forumId,
+    postId,
+    postAuthorUserId: comment.post.authorUserId,
+    commentId: comment.id,
+    actorUserId: currentUser.id,
+    actorDisplayName: currentUser.displayName,
+    bodyMarkdown,
+    notifyThreadParticipants: false,
   });
 
   revalidatePath(`/forums/${forumId}/channels/${channelId}/posts/${postId}`);

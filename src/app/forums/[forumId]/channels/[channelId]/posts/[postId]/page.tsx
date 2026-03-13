@@ -30,6 +30,7 @@ import {
 import { formatDateTime } from "@/lib/date-time";
 import { getPost, isForumMember } from "@/lib/forum-data";
 import { getForumHeroStyle, getForumPageStyle } from "@/lib/forum-theme";
+import { markPostNotificationsAsRead } from "@/lib/notification-service";
 import { ui } from "@/lib/ui-classes";
 
 type PostPageProps = Readonly<{
@@ -55,6 +56,8 @@ export default async function PostPage({ params }: PostPageProps) {
   if (!isForumMember(post.channel.forum, currentUser.id)) {
     notFound();
   }
+
+  await markPostNotificationsAsRead(currentUser.id, postId);
 
   const isAdmin = isSystemAdmin(currentUser);
 

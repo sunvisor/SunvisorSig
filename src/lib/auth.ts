@@ -117,6 +117,7 @@ export async function getCurrentUser() {
       id: true,
       displayName: true,
       email: true,
+      mentionHandle: true,
       systemRole: true,
       status: true,
     },

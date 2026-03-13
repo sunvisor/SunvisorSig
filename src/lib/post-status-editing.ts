@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { initialFormActionState, type FormActionState } from "@/lib/action-state";
 import { requireCurrentUser } from "@/lib/auth";
 import { AppError, isAppError } from "@/lib/app-error";
+import { createCommentNotifications } from "@/lib/notification-service";
 import { getPostStatusLabel } from "@/lib/post-status";
 import { prisma } from "@/lib/prisma";
 
@@ -73,6 +74,17 @@ export async function updatePostStatus(formData: FormData) {
         type: "STATUS_CHANGE",
         bodyMarkdown: statusComment,
       },
+    }).then(async (comment) => {
+      await createCommentNotifications({
+        forumId,
+        postId: post.id,
+        postAuthorUserId: post.authorUserId,
+        commentId: comment.id,
+        actorUserId: currentUser.id,
+        actorDisplayName: currentUser.displayName,
+        bodyMarkdown: statusComment,
+        client: tx,
+      });
     });
   });
 

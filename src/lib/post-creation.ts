@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { buildDedupedFilename } from "@/lib/attachment-filename";
 import { requireCurrentUser } from "@/lib/auth";
+import { createPostMentionNotifications } from "@/lib/notification-service";
 import { prisma } from "@/lib/prisma";
 
 export async function createPost(formData: FormData) {
@@ -87,6 +88,14 @@ export async function createPost(formData: FormData) {
       });
     }
   }
+
+  await createPostMentionNotifications({
+    forumId,
+    postId: post.id,
+    actorUserId: currentUser.id,
+    actorDisplayName: currentUser.displayName,
+    bodyMarkdown,
+  });
 
   revalidatePath("/forums");
   revalidatePath(`/forums/${forumId}`);
