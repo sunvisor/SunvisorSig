@@ -125,6 +125,12 @@ npm run db:test-notifications
 npm run db:test-activation
 ```
 
+フォーラム / チャンネル作成の integration test:
+
+```bash
+npm run db:test-creation
+```
+
 投稿ステータス変更の integration test:
 
 ```bash

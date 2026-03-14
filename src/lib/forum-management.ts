@@ -58,35 +58,16 @@ export const initialInvitationCancelActionState = initialFormActionState;
 export async function createForum(formData: FormData) {
   "use server";
 
-  const name = String(formData.get("name") ?? "").trim();
-  const description = normalizeDescription(formData);
-  const themeName = String(formData.get("themeName") ?? "").trim();
   const currentUser = await requireSystemAdmin();
-  const createdByUserId = currentUser.id;
-
-  if (!name || !themeName) {
-    throw new AppError("INVALID_INPUT", "必須項目が不足しています。");
-  }
-
-  const theme = getForumThemePreset(themeName);
-
-  const forum = await prisma.forum.create({
-    data: {
-      name,
-      description,
-      createdByUserId,
-      ...theme,
-      members: {
-        create: {
-          userId: createdByUserId,
-          role: "PARTICIPANT",
-        },
-      },
-    },
+  const forum = await createForumRecord({
+    name: String(formData.get("name") ?? ""),
+    description: normalizeDescription(formData) ?? "",
+    themeName: String(formData.get("themeName") ?? ""),
+    createdByUserId: currentUser.id,
   });
 
   await createAuditLog({
-    actorUserId: createdByUserId,
+    actorUserId: currentUser.id,
     actionType: "FORUM_CREATED",
     targetType: "FORUM",
     targetId: forum.id,
@@ -99,6 +80,39 @@ export async function createForum(formData: FormData) {
 
   revalidateForumPaths(forum.id);
   redirect(`/forums/${forum.id}` as Route);
+}
+
+export async function createForumRecord(input: {
+  name: string;
+  description: string;
+  themeName: string;
+  createdByUserId: string;
+}) {
+  const name = input.name.trim();
+  const descriptionValue = input.description.trim();
+  const description = descriptionValue.length > 0 ? descriptionValue : null;
+  const themeName = input.themeName.trim();
+
+  if (!name || !themeName) {
+    throw new AppError("INVALID_INPUT", "必須項目が不足しています。");
+  }
+
+  const theme = getForumThemePreset(themeName);
+
+  return prisma.forum.create({
+    data: {
+      name,
+      description,
+      createdByUserId: input.createdByUserId,
+      ...theme,
+      members: {
+        create: {
+          userId: input.createdByUserId,
+          role: "PARTICIPANT",
+        },
+      },
+    },
+  });
 }
 
 export async function createForumAction(

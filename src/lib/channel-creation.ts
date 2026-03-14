@@ -10,12 +10,42 @@ import { prisma } from "@/lib/prisma";
 export async function createChannel(formData: FormData) {
   "use server";
 
-  const forumId = String(formData.get("forumId") ?? "");
-  const name = String(formData.get("name") ?? "").trim();
-  const descriptionValue = String(formData.get("description") ?? "").trim();
-  const description = descriptionValue.length > 0 ? descriptionValue : null;
   const currentUser = await requireSystemAdmin();
-  const createdByUserId = currentUser.id;
+  const channel = await createChannelRecord({
+    forumId: String(formData.get("forumId") ?? ""),
+    name: String(formData.get("name") ?? ""),
+    description: String(formData.get("description") ?? ""),
+    createdByUserId: currentUser.id,
+  });
+
+  await createAuditLog({
+    actorUserId: currentUser.id,
+    actionType: "CHANNEL_CREATED",
+    targetType: "CHANNEL",
+    targetId: channel.id,
+    targetLabel: channel.name,
+    metadata: {
+      forumId: channel.forumId,
+      description: channel.description,
+    },
+  });
+
+  revalidatePath("/forums");
+  revalidatePath(`/forums/${channel.forumId}`);
+  revalidatePath(`/forums/${channel.forumId}/channels/${channel.id}`);
+  redirect(`/forums/${channel.forumId}/channels/${channel.id}` as Route);
+}
+
+export async function createChannelRecord(input: {
+  forumId: string;
+  name: string;
+  description: string;
+  createdByUserId: string;
+}) {
+  const forumId = input.forumId;
+  const name = input.name.trim();
+  const descriptionValue = input.description.trim();
+  const description = descriptionValue.length > 0 ? descriptionValue : null;
 
   if (!forumId || !name) {
     throw new AppError("INVALID_INPUT", "必須項目が不足しています。");
@@ -30,31 +60,14 @@ export async function createChannel(formData: FormData) {
     throw new AppError("INVALID_INPUT", "対象のフォーラムが見つかりません。");
   }
 
-  const channel = await prisma.channel.create({
+  return prisma.channel.create({
     data: {
       forumId,
-      createdByUserId,
+      createdByUserId: input.createdByUserId,
       name,
       description,
     },
   });
-
-  await createAuditLog({
-    actorUserId: createdByUserId,
-    actionType: "CHANNEL_CREATED",
-    targetType: "CHANNEL",
-    targetId: channel.id,
-    targetLabel: channel.name,
-    metadata: {
-      forumId,
-      description: channel.description,
-    },
-  });
-
-  revalidatePath("/forums");
-  revalidatePath(`/forums/${forumId}`);
-  revalidatePath(`/forums/${forumId}/channels/${channel.id}`);
-  redirect(`/forums/${forumId}/channels/${channel.id}` as Route);
 }
 
 export { initialFormActionState as initialChannelActionState };
