@@ -25,6 +25,47 @@ export async function createComment(formData: FormData) {
   const files = formData
     .getAll("attachments")
     .filter((value): value is File => value instanceof File && value.size > 0);
+  const { comment, post } = await createCommentRecord({
+    forumId,
+    channelId,
+    postId,
+    authorUserId,
+    bodyMarkdown,
+    files,
+  });
+
+  const notifiedUserIds = await createCommentNotifications({
+    forumId,
+    postId,
+    channelId,
+    postAuthorUserId: post.authorUserId,
+    commentId: comment.id,
+    actorUserId: currentUser.id,
+    actorDisplayName: currentUser.displayName,
+    bodyMarkdown,
+  });
+
+  publishNotificationRefresh(notifiedUserIds);
+  publishPostActivity(postId);
+  publishChannelActivity(channelId);
+
+  revalidatePath(`/forums/${forumId}/channels/${channelId}/posts/${postId}`);
+}
+
+export async function createCommentRecord(input: {
+  forumId: string;
+  channelId: string;
+  postId: string;
+  authorUserId: string;
+  bodyMarkdown: string;
+  files?: File[];
+}) {
+  const forumId = input.forumId;
+  const channelId = input.channelId;
+  const postId = input.postId;
+  const authorUserId = input.authorUserId;
+  const bodyMarkdown = input.bodyMarkdown.trim();
+  const files = input.files ?? [];
 
   if (!forumId || !channelId || !postId || !bodyMarkdown) {
     throw new AppError("INVALID_INPUT", "必須項目が不足しています。");
@@ -79,22 +120,7 @@ export async function createComment(formData: FormData) {
     },
   });
 
-  const notifiedUserIds = await createCommentNotifications({
-    forumId,
-    postId,
-    channelId,
-    postAuthorUserId: post.authorUserId,
-    commentId: comment.id,
-    actorUserId: currentUser.id,
-    actorDisplayName: currentUser.displayName,
-    bodyMarkdown,
-  });
-
-  publishNotificationRefresh(notifiedUserIds);
-  publishPostActivity(postId);
-  publishChannelActivity(channelId);
-
-  revalidatePath(`/forums/${forumId}/channels/${channelId}/posts/${postId}`);
+  return { comment, post };
 }
 
 export async function createCommentAction(

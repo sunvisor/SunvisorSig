@@ -1,9 +1,8 @@
 import type { Route } from "next";
-import { mkdir, writeFile } from "node:fs/promises";
-import path from "node:path";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { buildDedupedFilename } from "@/lib/attachment-filename";
+import { savePostAttachments } from "@/lib/attachment-storage";
+import { AppError } from "@/lib/app-error";
 import { requireCurrentUser } from "@/lib/auth";
 import {
   publishChannelActivity,
@@ -24,74 +23,14 @@ export async function createPost(formData: FormData) {
   const files = formData
     .getAll("attachments")
     .filter((value): value is File => value instanceof File && value.size > 0);
-
-  if (!forumId || !channelId || !title || !bodyMarkdown) {
-    throw new Error("必須項目が不足しています。");
-  }
-
-  const channel = await prisma.channel.findUnique({
-    where: { id: channelId },
-    include: {
-      forum: true,
-    },
+  const post = await createPostRecord({
+    forumId,
+    channelId,
+    authorUserId,
+    title,
+    bodyMarkdown,
+    files,
   });
-
-  if (!channel || channel.forumId !== forumId) {
-    throw new Error("チャンネルが見つかりません。");
-  }
-
-  const membership = await prisma.forumMember.findUnique({
-    where: {
-      forumId_userId: {
-        forumId,
-        userId: authorUserId,
-      },
-    },
-  });
-
-  if (!membership) {
-    throw new Error("このフォーラムの参加者のみ投稿できます。");
-  }
-
-  const post = await prisma.post.create({
-    data: {
-      channelId,
-      authorUserId,
-      title,
-      bodyMarkdown,
-    },
-  });
-
-  if (files.length > 0) {
-    const uploadDir = path.join(
-      process.cwd(),
-      "public",
-      "uploads",
-      "posts",
-      post.id,
-    );
-    const usedNames = new Set<string>();
-
-    await mkdir(uploadDir, { recursive: true });
-
-    for (const file of files) {
-      const originalFilename = buildDedupedFilename(file.name, usedNames);
-      const storagePath = `/uploads/posts/${post.id}/${originalFilename}`;
-      const buffer = Buffer.from(await file.arrayBuffer());
-
-      await writeFile(path.join(uploadDir, originalFilename), buffer);
-
-      await prisma.postAttachment.create({
-        data: {
-          postId: post.id,
-          storagePath,
-          originalFilename,
-          mimeType: file.type || "application/octet-stream",
-          sizeBytes: buffer.byteLength,
-        },
-      });
-    }
-  }
 
   const notifiedUserIds = await createPostMentionNotifications({
     forumId,
@@ -110,4 +49,72 @@ export async function createPost(formData: FormData) {
   revalidatePath(`/forums/${forumId}/channels/${channelId}`);
   revalidatePath(`/forums/${forumId}/channels/${channelId}/posts/${post.id}`);
   redirect(`/forums/${forumId}/channels/${channelId}/posts/${post.id}` as Route);
+}
+
+export async function createPostRecord(input: {
+  forumId: string;
+  channelId: string;
+  authorUserId: string;
+  title: string;
+  bodyMarkdown: string;
+  files?: File[];
+}) {
+  const forumId = input.forumId;
+  const channelId = input.channelId;
+  const authorUserId = input.authorUserId;
+  const title = input.title.trim();
+  const bodyMarkdown = input.bodyMarkdown.trim();
+  const files = input.files ?? [];
+
+  if (!forumId || !channelId || !title || !bodyMarkdown) {
+    throw new AppError("INVALID_INPUT", "必須項目が不足しています。");
+  }
+
+  const channel = await prisma.channel.findUnique({
+    where: { id: channelId },
+    include: {
+      forum: true,
+    },
+  });
+
+  if (!channel || channel.forumId !== forumId) {
+    throw new AppError("INVALID_INPUT", "チャンネルが見つかりません。");
+  }
+
+  const membership = await prisma.forumMember.findUnique({
+    where: {
+      forumId_userId: {
+        forumId,
+        userId: authorUserId,
+      },
+    },
+  });
+
+  if (!membership) {
+    throw new AppError("FORBIDDEN", "このフォーラムの参加者のみ投稿できます。");
+  }
+
+  const post = await prisma.post.create({
+    data: {
+      channelId,
+      authorUserId,
+      title,
+      bodyMarkdown,
+    },
+  });
+
+  await savePostAttachments({
+    postId: post.id,
+    files,
+    createAttachment: async (attachment) => {
+      await prisma.postAttachment.create({
+        data: {
+          postId: post.id,
+          ...attachment,
+        },
+      });
+    },
+  });
+
+  return post;
 }

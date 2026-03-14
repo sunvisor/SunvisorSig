@@ -143,6 +143,12 @@ npm run db:test-creation
 npm run db:test-editing
 ```
 
+投稿 / コメント作成の integration test:
+
+```bash
+npm run db:test-post-comment-creation
+```
+
 投稿ステータス変更の integration test:
 
 ```bash
