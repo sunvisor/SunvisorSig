@@ -63,6 +63,31 @@ docker compose -f docker-compose.prod.yml up -d app
 curl http://localhost:3000/api/health
 ```
 
+## 実地確認チェックリスト
+
+初回デプロイ時、または大きな更新後は以下を順に確認する。
+
+1. `/api/health` が `200` を返す
+2. ログイン画面が開く
+3. 管理者でログインできる
+4. フォーラム一覧が表示される
+5. フォーラム詳細、チャンネル詳細、投稿詳細が表示できる
+6. 新規投稿を作成できる
+7. 新規コメントを作成できる
+8. 通知ベルが表示され、対象投稿を開くと既読になる
+9. 招待を作成できる
+10. SMTP 設定済みなら招待メールが届く
+11. webhook のテスト送信が成功する
+12. 添付ファイルを追加して開ける
+13. `npm run db:purge` が正常終了する
+
+### 実地確認コマンド例
+
+```bash
+curl http://localhost:3000/api/health
+docker compose -f docker-compose.prod.yml run --rm app npm run db:purge
+```
+
 ## 停止
 
 ```bash
