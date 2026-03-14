@@ -35,6 +35,12 @@ docker compose -f docker-compose.prod.yml run --rm app npx prisma migrate deploy
 docker compose -f docker-compose.prod.yml up -d app
 ```
 
+起動確認:
+
+```bash
+curl http://localhost:3000/api/health
+```
+
 ## 更新手順
 
 本番更新は、まずこれで十分。
@@ -51,6 +57,12 @@ docker compose -f docker-compose.prod.yml run --rm app npx prisma migrate deploy
 docker compose -f docker-compose.prod.yml up -d app
 ```
 
+更新後の確認:
+
+```bash
+curl http://localhost:3000/api/health
+```
+
 ## 停止
 
 ```bash
@@ -65,4 +77,3 @@ docker compose -f docker-compose.prod.yml down
 - 本番では seed データを投入しない
 - `AUTH_SECRET` は十分に長いランダム値へ変更する
 - webhook URL は secret として扱う
-
