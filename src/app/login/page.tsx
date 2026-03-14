@@ -1,3 +1,4 @@
+import type { Route } from "next";
 import { redirect } from "next/navigation";
 import { ForumShell } from "@/components/forum-shell";
 import { LoginForm } from "@/components/login-form";
@@ -9,7 +10,7 @@ export default async function LoginPage() {
   const currentUser = await getCurrentUser();
 
   if (currentUser) {
-    redirect("/forums");
+    redirect("/forums" as Route);
   }
 
   return (

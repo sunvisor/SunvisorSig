@@ -44,7 +44,7 @@ export default async function PostPage({ params }: PostPageProps) {
   }
 
   if (!currentUser) {
-    redirect("/login");
+    redirect("/login" as Route);
   }
 
   if (!isForumMember(post.channel.forum, currentUser.id)) {

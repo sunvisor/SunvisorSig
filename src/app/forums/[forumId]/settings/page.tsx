@@ -46,7 +46,7 @@ export default async function ForumSettingsPage({ params }: ForumSettingsPagePro
   }
 
   if (!currentUser) {
-    redirect("/login");
+    redirect("/login" as Route);
   }
 
   if (!isSystemAdmin(currentUser)) {

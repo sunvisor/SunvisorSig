@@ -38,7 +38,7 @@ export default async function ChannelPage({ params, searchParams }: ChannelPageP
   }
 
   if (!currentUser) {
-    redirect("/login");
+    redirect("/login" as Route);
   }
 
   if (!isForumMember(channel.forum, currentUser.id)) {

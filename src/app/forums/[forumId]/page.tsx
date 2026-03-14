@@ -28,7 +28,7 @@ export default async function ForumPage({ params }: ForumPageProps) {
   }
 
   if (!currentUser) {
-    redirect("/login");
+    redirect("/login" as Route);
   }
 
   if (!isForumMember(forum, currentUser.id)) {

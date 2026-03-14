@@ -21,7 +21,7 @@ export default async function NewChannelPage({ params }: NewChannelPageProps) {
   }
 
   if (!currentUser) {
-    redirect("/login");
+    redirect("/login" as Route);
   }
 
   if (!isForumMember(forum, currentUser.id)) {

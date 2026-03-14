@@ -22,7 +22,7 @@ export default async function NewPostPage({ params }: NewPostPageProps) {
   }
 
   if (!currentUser) {
-    redirect("/login");
+    redirect("/login" as Route);
   }
 
   if (!isForumMember(channel.forum, currentUser.id)) {

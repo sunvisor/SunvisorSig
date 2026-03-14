@@ -14,7 +14,7 @@ export default async function ForumsPage() {
   const currentUser = await getCurrentUser();
 
   if (!currentUser) {
-    redirect("/login");
+    redirect("/login" as Route);
   }
 
   const forums = await getForums(currentUser.id);

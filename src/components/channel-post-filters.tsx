@@ -1,5 +1,6 @@
 "use client";
 
+import type { Route } from "next";
 import { useEffect, useState, useTransition } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { postStatusFilterOptions } from "@/lib/post-status";
@@ -18,7 +19,7 @@ function buildUrl(pathname: string, nextQuery: string, nextStatus: string) {
     nextParams.set("status", nextStatus);
   }
 
-  return nextParams.toString() ? `${pathname}?${nextParams.toString()}` : pathname;
+  return (nextParams.toString() ? `${pathname}?${nextParams.toString()}` : pathname) as Route;
 }
 
 type ChannelPostFiltersProps = Readonly<{
@@ -84,7 +85,7 @@ export function ChannelPostFilters({
     setStatus("");
 
     startTransition(() => {
-      router.replace(pathname, { scroll: false });
+      router.replace(pathname as Route, { scroll: false });
     });
   };
 

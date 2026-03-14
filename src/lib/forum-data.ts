@@ -1,4 +1,5 @@
 import { cache } from "react";
+import { buildChannelPostSearchWhere } from "@/lib/channel-post-search";
 import { prisma } from "@/lib/prisma";
 
 export const getActiveUsers = cache(async () => {
@@ -116,17 +117,6 @@ export const getChannel = cache(async (channelId: string) => {
 
 export const getChannelWithPostSearch = cache(
   async (channelId: string, query: string, status: string) => {
-    const normalizedQuery = query.trim();
-    const normalizedStatus = status.trim();
-    const statusFilter =
-      normalizedStatus === "NONE"
-        ? null
-        : normalizedStatus === "TODO" ||
-            normalizedStatus === "IN_PROGRESS" ||
-            normalizedStatus === "DONE"
-          ? normalizedStatus
-          : undefined;
-
     return prisma.channel.findUnique({
       where: { id: channelId },
       include: {
@@ -147,27 +137,7 @@ export const getChannelWithPostSearch = cache(
           },
         },
         posts: {
-          where: {
-            ...(normalizedQuery
-              ? {
-                  OR: [
-                    {
-                      title: {
-                        contains: normalizedQuery,
-                        mode: "insensitive",
-                      },
-                    },
-                    {
-                      bodyMarkdown: {
-                        contains: normalizedQuery,
-                        mode: "insensitive",
-                      },
-                    },
-                  ],
-                }
-              : {}),
-            ...(statusFilter !== undefined ? { status: statusFilter } : {}),
-          },
+          where: buildChannelPostSearchWhere(query, status),
           orderBy: { updatedAt: "desc" },
           include: {
             authorUser: true,

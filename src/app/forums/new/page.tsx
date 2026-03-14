@@ -10,7 +10,7 @@ export default async function NewForumPage() {
   const currentUser = await getCurrentUser();
 
   if (!currentUser) {
-    redirect("/login");
+    redirect("/login" as Route);
   }
 
   if (!isSystemAdmin(currentUser)) {

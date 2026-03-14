@@ -11,11 +11,11 @@ export default async function AuditLogsPage() {
   const currentUser = await getCurrentUser();
 
   if (!currentUser) {
-    redirect("/login");
+    redirect("/login" as Route);
   }
 
   if (!isSystemAdmin(currentUser)) {
-    redirect("/forums");
+    redirect("/forums" as Route);
   }
 
   const logs = await getAuditLogs();
