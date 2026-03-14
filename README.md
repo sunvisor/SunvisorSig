@@ -125,6 +125,12 @@ npm run db:test-notifications
 npm run db:test-activation
 ```
 
+チャンネル購読の integration test:
+
+```bash
+npm run db:test-channel-subscriptions
+```
+
 フォーラム / チャンネル作成の integration test:
 
 ```bash

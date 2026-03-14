@@ -17,6 +17,7 @@
     "db:test-deletion": "tsx prisma/test-deletion.ts",
     "db:test-notifications": "tsx prisma/test-notifications.ts",
     "db:test-activation": "tsx prisma/test-activation.ts",
+    "db:test-channel-subscriptions": "tsx prisma/test-channel-subscriptions.ts",
     "db:test-creation": "tsx prisma/test-creation.ts",
     "db:test-editing": "tsx prisma/test-editing.ts",
     "db:test-post-status": "tsx prisma/test-post-status.ts",

@@ -6,13 +6,12 @@ import { prisma } from "@/lib/prisma";
 
 export const initialChannelSubscriptionActionState = initialFormActionState;
 
-export async function toggleChannelSubscription(formData: FormData) {
-  "use server";
-
-  const forumId = String(formData.get("forumId") ?? "");
-  const channelId = String(formData.get("channelId") ?? "");
-  const currentUser = await requireCurrentUser();
-
+export async function toggleChannelSubscriptionRecord(input: {
+  forumId: string;
+  channelId: string;
+  actingUserId: string;
+}) {
+  const { forumId, channelId, actingUserId } = input;
   if (!forumId || !channelId) {
     throw new AppError("INVALID_INPUT", "購読対象の情報が不足しています。");
   }
@@ -21,7 +20,7 @@ export async function toggleChannelSubscription(formData: FormData) {
     where: {
       forumId_userId: {
         forumId,
-        userId: currentUser.id,
+        userId: actingUserId,
       },
     },
   });
@@ -34,7 +33,7 @@ export async function toggleChannelSubscription(formData: FormData) {
     where: {
       channelId_userId: {
         channelId,
-        userId: currentUser.id,
+        userId: actingUserId,
       },
     },
   });
@@ -44,18 +43,34 @@ export async function toggleChannelSubscription(formData: FormData) {
       where: {
         channelId_userId: {
           channelId,
-          userId: currentUser.id,
+          userId: actingUserId,
         },
       },
     });
+    return { subscribed: false };
   } else {
     await prisma.channelSubscription.create({
       data: {
         channelId,
-        userId: currentUser.id,
+        userId: actingUserId,
       },
     });
+    return { subscribed: true };
   }
+}
+
+export async function toggleChannelSubscription(formData: FormData) {
+  "use server";
+
+  const forumId = String(formData.get("forumId") ?? "");
+  const channelId = String(formData.get("channelId") ?? "");
+  const currentUser = await requireCurrentUser();
+
+  await toggleChannelSubscriptionRecord({
+    forumId,
+    channelId,
+    actingUserId: currentUser.id,
+  });
 
   revalidatePath(`/forums/${forumId}/channels/${channelId}`);
 }
