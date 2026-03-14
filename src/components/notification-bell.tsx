@@ -89,7 +89,7 @@ export function NotificationBell({ notifications }: NotificationBellProps) {
               {visibleNotifications.map((notification) => (
                 <Link
                   key={notification.id}
-                  className="theme-muted-card block rounded-2xl border p-4 transition hover:border-[color:var(--theme-accent)]"
+                  className="theme-muted-card block rounded-2xl border p-4 transition hover:border-(--theme-accent)"
                   href={notification.href}
                   onClick={() => setIsOpen(false)}
                 >

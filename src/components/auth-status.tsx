@@ -20,7 +20,7 @@ export async function AuthStatus() {
     <div className="flex items-center gap-3">
       <NotificationBell notifications={notifications.map(serializeNotification)} />
       <Link
-        className={`${ui.surface.mutedCard} block px-4 py-2 no-underline transition hover:border-[color:var(--theme-accent)]`}
+        className={`${ui.surface.mutedCard} block px-4 py-2 no-underline transition hover:border-(--theme-accent)`}
         href={"/profile" as Route}
       >
         <p className="theme-text text-sm font-medium">{user.displayName}</p>

@@ -75,11 +75,11 @@ export function InvitationEmailPreviewButton({
       {open && typeof document !== "undefined"
         ? createPortal(
             <div
-              className="fixed inset-0 z-[120]"
+              className="fixed inset-0 z-120"
               onClick={() => setOpen(false)}
             >
               <div
-                className="theme-card fixed z-[121] grid w-[min(34rem,calc(100vw-2rem))] gap-4 rounded-3xl border p-5 shadow-2xl shadow-slate-900/10"
+                className="theme-card fixed z-121 grid w-[min(34rem,calc(100vw-2rem))] gap-4 rounded-3xl border p-5 shadow-2xl shadow-slate-900/10"
                 onClick={(event) => event.stopPropagation()}
                 style={{
                   top: position.top,
@@ -109,7 +109,7 @@ export function InvitationEmailPreviewButton({
                 </div>
                 <div className="grid gap-2">
                   <p className={ui.text.meta}>Body</p>
-                  <pre className="theme-text-muted overflow-y-auto whitespace-pre-wrap break-words text-sm leading-7">
+                  <pre className="theme-text-muted overflow-y-auto whitespace-pre-wrap wrap-break-word text-sm leading-7">
                     {text}
                   </pre>
                 </div>
