@@ -5,15 +5,14 @@ import { deleteStoredAttachment } from "@/lib/attachment-storage";
 import { publishChannelActivity, publishPostActivity } from "@/lib/notification-events";
 import { prisma } from "@/lib/prisma";
 
-export async function deletePostAttachment(formData: FormData) {
-  "use server";
-
-  const forumId = String(formData.get("forumId") ?? "");
-  const channelId = String(formData.get("channelId") ?? "");
-  const postId = String(formData.get("postId") ?? "");
-  const attachmentId = String(formData.get("attachmentId") ?? "");
-  const currentUser = await requireCurrentUser();
-
+export async function deletePostAttachmentRecord(input: {
+  forumId: string;
+  channelId: string;
+  postId: string;
+  attachmentId: string;
+  actingUserId: string;
+}) {
+  const { forumId, channelId, postId, attachmentId, actingUserId } = input;
   if (!forumId || !channelId || !postId || !attachmentId) {
     throw new AppError("INVALID_INPUT", "削除対象の情報が不足しています。");
   }
@@ -38,7 +37,7 @@ export async function deletePostAttachment(formData: FormData) {
     throw new AppError("INVALID_INPUT", "添付ファイルが見つかりません。");
   }
 
-  if (attachment.post.authorUserId !== currentUser.id) {
+  if (attachment.post.authorUserId !== actingUserId) {
     throw new AppError("FORBIDDEN", "自分の投稿の添付ファイルだけ削除できます。");
   }
 
@@ -49,22 +48,40 @@ export async function deletePostAttachment(formData: FormData) {
   });
 
   await deleteStoredAttachment(attachment.storagePath);
+}
+
+export async function deletePostAttachment(formData: FormData) {
+  "use server";
+
+  const forumId = String(formData.get("forumId") ?? "");
+  const channelId = String(formData.get("channelId") ?? "");
+  const postId = String(formData.get("postId") ?? "");
+  const attachmentId = String(formData.get("attachmentId") ?? "");
+  const currentUser = await requireCurrentUser();
+
+  await deletePostAttachmentRecord({
+    forumId,
+    channelId,
+    postId,
+    attachmentId,
+    actingUserId: currentUser.id,
+  });
+
   publishPostActivity(postId);
   publishChannelActivity(channelId);
   revalidatePath(`/forums/${forumId}/channels/${channelId}`);
   revalidatePath(`/forums/${forumId}/channels/${channelId}/posts/${postId}`);
 }
 
-export async function deleteCommentAttachment(formData: FormData) {
-  "use server";
-
-  const forumId = String(formData.get("forumId") ?? "");
-  const channelId = String(formData.get("channelId") ?? "");
-  const postId = String(formData.get("postId") ?? "");
-  const commentId = String(formData.get("commentId") ?? "");
-  const attachmentId = String(formData.get("attachmentId") ?? "");
-  const currentUser = await requireCurrentUser();
-
+export async function deleteCommentAttachmentRecord(input: {
+  forumId: string;
+  channelId: string;
+  postId: string;
+  commentId: string;
+  attachmentId: string;
+  actingUserId: string;
+}) {
+  const { forumId, channelId, postId, commentId, attachmentId, actingUserId } = input;
   if (!forumId || !channelId || !postId || !commentId || !attachmentId) {
     throw new AppError("INVALID_INPUT", "削除対象の情報が不足しています。");
   }
@@ -94,7 +111,7 @@ export async function deleteCommentAttachment(formData: FormData) {
     throw new AppError("INVALID_INPUT", "添付ファイルが見つかりません。");
   }
 
-  if (attachment.comment.authorUserId !== currentUser.id) {
+  if (attachment.comment.authorUserId !== actingUserId) {
     throw new AppError("FORBIDDEN", "自分のコメントの添付ファイルだけ削除できます。");
   }
 
@@ -105,6 +122,27 @@ export async function deleteCommentAttachment(formData: FormData) {
   });
 
   await deleteStoredAttachment(attachment.storagePath);
+}
+
+export async function deleteCommentAttachment(formData: FormData) {
+  "use server";
+
+  const forumId = String(formData.get("forumId") ?? "");
+  const channelId = String(formData.get("channelId") ?? "");
+  const postId = String(formData.get("postId") ?? "");
+  const commentId = String(formData.get("commentId") ?? "");
+  const attachmentId = String(formData.get("attachmentId") ?? "");
+  const currentUser = await requireCurrentUser();
+
+  await deleteCommentAttachmentRecord({
+    forumId,
+    channelId,
+    postId,
+    commentId,
+    attachmentId,
+    actingUserId: currentUser.id,
+  });
+
   publishPostActivity(postId);
   publishChannelActivity(channelId);
   revalidatePath(`/forums/${forumId}/channels/${channelId}`);

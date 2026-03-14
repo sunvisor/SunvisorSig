@@ -18,6 +18,7 @@
     "db:test-activation": "tsx prisma/test-activation.ts",
     "db:test-profile": "tsx prisma/test-profile.ts",
     "db:test-forum-management": "tsx prisma/test-forum-management.ts",
+    "db:test-attachments": "tsx prisma/test-attachments.ts",
     "db:studio": "prisma studio",
     "postinstall": "prisma generate"
   },

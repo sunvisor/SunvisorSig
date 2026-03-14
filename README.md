@@ -137,6 +137,12 @@ npm run db:test-profile
 npm run db:test-forum-management
 ```
 
+添付ファイル権限の integration test:
+
+```bash
+npm run db:test-attachments
+```
+
 削除待ちデータの完全削除バッチ:
 
 ```bash
