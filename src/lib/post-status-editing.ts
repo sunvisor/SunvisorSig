@@ -18,15 +18,17 @@ const allowedStatuses = new Set(["", "TODO", "IN_PROGRESS", "DONE"]);
 
 export const initialPostStatusActionState = initialFormActionState;
 
-export async function updatePostStatus(formData: FormData) {
-  "use server";
-
-  const forumId = String(formData.get("forumId") ?? "");
-  const channelId = String(formData.get("channelId") ?? "");
-  const postId = String(formData.get("postId") ?? "");
-  const nextStatusValue = String(formData.get("status") ?? "");
-  const currentUser = await requireCurrentUser();
-
+export async function updatePostStatusRecord(input: {
+  forumId: string;
+  channelId: string;
+  postId: string;
+  nextStatusValue: string;
+  actingUser: {
+    id: string;
+    displayName: string;
+  };
+}) {
+  const { forumId, channelId, postId, nextStatusValue, actingUser } = input;
   if (!forumId || !channelId || !postId || !allowedStatuses.has(nextStatusValue)) {
     throw new AppError("INVALID_INPUT", "ステータス変更の入力が不正です。");
   }
@@ -46,7 +48,7 @@ export async function updatePostStatus(formData: FormData) {
     where: {
       forumId_userId: {
         forumId,
-        userId: currentUser.id,
+        userId: actingUser.id,
       },
     },
   });
@@ -58,11 +60,20 @@ export async function updatePostStatus(formData: FormData) {
   const nextStatus: PostStatus | null =
     nextStatusValue === "" ? null : (nextStatusValue as PostStatus);
 
+  const redirectPath = `/forums/${forumId}/channels/${channelId}/posts/${postId}` as Route;
+
   if (post.status === nextStatus) {
-    redirect(`/forums/${forumId}/channels/${channelId}/posts/${postId}` as Route);
+    return {
+      postId,
+      channelId,
+      forumId,
+      nextStatus,
+      notifiedUserIds: [] as string[],
+      redirectPath,
+    };
   }
 
-  const statusComment = `${currentUser.displayName} が状態を「${getPostStatusLabel(nextStatus)}」に変更しました。`;
+  const statusComment = `${actingUser.displayName} が状態を「${getPostStatusLabel(nextStatus)}」に変更しました。`;
   let notifiedUserIds: string[] = [];
 
   await prisma.$transaction(async (tx) => {
@@ -76,7 +87,7 @@ export async function updatePostStatus(formData: FormData) {
     const comment = await tx.comment.create({
       data: {
         postId: post.id,
-        authorUserId: currentUser.id,
+        authorUserId: actingUser.id,
         type: "STATUS_CHANGE",
         bodyMarkdown: statusComment,
       },
@@ -88,20 +99,45 @@ export async function updatePostStatus(formData: FormData) {
       channelId,
       postAuthorUserId: post.authorUserId,
       commentId: comment.id,
-      actorUserId: currentUser.id,
-      actorDisplayName: currentUser.displayName,
+      actorUserId: actingUser.id,
+      actorDisplayName: actingUser.displayName,
       bodyMarkdown: statusComment,
       client: tx,
     });
   });
 
-  publishNotificationRefresh(notifiedUserIds);
-  publishPostActivity(postId);
-  publishChannelActivity(channelId);
+  return {
+    postId,
+    channelId,
+    forumId,
+    nextStatus,
+    notifiedUserIds,
+    redirectPath,
+  };
+}
 
-  revalidatePath(`/forums/${forumId}/channels/${channelId}`);
-  revalidatePath(`/forums/${forumId}/channels/${channelId}/posts/${postId}`);
-  redirect(`/forums/${forumId}/channels/${channelId}/posts/${postId}` as Route);
+export async function updatePostStatus(formData: FormData) {
+  "use server";
+
+  const currentUser = await requireCurrentUser();
+  const result = await updatePostStatusRecord({
+    forumId: String(formData.get("forumId") ?? ""),
+    channelId: String(formData.get("channelId") ?? ""),
+    postId: String(formData.get("postId") ?? ""),
+    nextStatusValue: String(formData.get("status") ?? ""),
+    actingUser: {
+      id: currentUser.id,
+      displayName: currentUser.displayName,
+    },
+  });
+
+  publishNotificationRefresh(result.notifiedUserIds);
+  publishPostActivity(result.postId);
+  publishChannelActivity(result.channelId);
+
+  revalidatePath(`/forums/${result.forumId}/channels/${result.channelId}`);
+  revalidatePath(result.redirectPath);
+  redirect(result.redirectPath);
 }
 
 export async function updatePostStatusAction(

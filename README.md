@@ -125,6 +125,12 @@ npm run db:test-notifications
 npm run db:test-activation
 ```
 
+投稿ステータス変更の integration test:
+
+```bash
+npm run db:test-post-status
+```
+
 プロフィール更新の integration test:
 
 ```bash
