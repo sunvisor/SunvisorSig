@@ -38,3 +38,14 @@ export function isWebhookEndpointType(value: string): value is WebhookEndpointTy
   return webhookTypeOptions.some((option) => option.value === value);
 }
 
+export function maskWebhookUrl(webhookUrl: string) {
+  try {
+    const url = new URL(webhookUrl);
+    const visibleSuffix = url.pathname.slice(-10);
+
+    return `${url.origin}/...${visibleSuffix}`;
+  } catch {
+    const visibleSuffix = webhookUrl.slice(-12);
+    return `***${visibleSuffix}`;
+  }
+}

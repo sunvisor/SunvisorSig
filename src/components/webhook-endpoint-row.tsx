@@ -3,7 +3,11 @@
 import { useActionState } from "react";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import type { FormActionState } from "@/lib/action-state";
-import { getWebhookEventLabel, getWebhookTypeLabel } from "@/lib/webhook-endpoints";
+import {
+  getWebhookEventLabel,
+  getWebhookTypeLabel,
+  maskWebhookUrl,
+} from "@/lib/webhook-endpoints";
 import { ui } from "@/lib/ui-classes";
 
 type WebhookEndpointRowProps = Readonly<{
@@ -43,7 +47,7 @@ export function WebhookEndpointRow({
             <span className={ui.text.meta}>{getWebhookTypeLabel(endpoint.type)}</span>
             <span className={ui.text.meta}>{endpoint.enabled ? "Enabled" : "Disabled"}</span>
           </div>
-          <p className="theme-text-muted break-all text-sm leading-6">{endpoint.webhookUrl}</p>
+          <p className="theme-text-muted break-all text-sm leading-6">{maskWebhookUrl(endpoint.webhookUrl)}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <form action={toggleFormAction}>
@@ -99,4 +103,3 @@ export function WebhookEndpointRow({
     </div>
   );
 }
-
