@@ -6,6 +6,7 @@ import { requireSystemAdmin } from "@/lib/auth";
 import { initialFormActionState, type FormActionState } from "@/lib/action-state";
 import { createAuditLog } from "@/lib/audit-log";
 import { prisma } from "@/lib/prisma";
+import { assertRateLimit } from "@/lib/rate-limit";
 import { AppError, isAppError, type AppErrorCode } from "@/lib/app-error";
 import { getForumThemePreset } from "@/lib/forum-theme";
 import { sendInvitationEmail } from "@/lib/invitation-email";
@@ -384,6 +385,13 @@ export async function createInvitation(formData: FormData) {
   if (!forumId || !email) {
     throw new AppError("INVALID_INPUT", "必須項目が不足しています。");
   }
+
+  assertRateLimit({
+    key: `invitation:${actingUserId}:${forumId}`,
+    limit: 10,
+    windowMs: 1000 * 60 * 10,
+    message: "招待作成の回数が多すぎます。しばらく待ってから再度お試しください。",
+  });
 
   const forum = await prisma.forum.findUnique({
     where: { id: forumId },

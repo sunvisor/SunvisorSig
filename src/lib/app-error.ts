@@ -11,7 +11,8 @@ export type AppErrorCode =
   | "INVITATION_ACCEPTED"
   | "PASSWORD_MISMATCH"
   | "PASSWORD_TOO_SHORT"
-  | "WEBHOOK_DELIVERY_FAILED";
+  | "WEBHOOK_DELIVERY_FAILED"
+  | "RATE_LIMITED";
 
 export class AppError extends Error {
   code: AppErrorCode;

@@ -6,6 +6,7 @@ import { initialFormActionState, type FormActionState } from "@/lib/action-state
 import { AppError, isAppError } from "@/lib/app-error";
 import { requireSystemAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { assertRateLimit } from "@/lib/rate-limit";
 import { sendWebhookTestMessage } from "@/lib/webhook-delivery";
 import { isWebhookEndpointType, isWebhookEventType } from "@/lib/webhook-endpoints";
 
@@ -294,6 +295,13 @@ export async function testWebhookEndpoint(formData: FormData) {
   if (!endpointId) {
     throw new AppError("INVALID_INPUT", "対象の Webhook が指定されていません。");
   }
+
+  assertRateLimit({
+    key: `webhook-test:${currentUser.id}:${endpointId}`,
+    limit: 5,
+    windowMs: 1000 * 60 * 10,
+    message: "Webhook テスト送信の回数が多すぎます。しばらく待ってから再度お試しください。",
+  });
 
   const endpoint = await getEndpointOrThrow(endpointId);
   await sendWebhookTestMessage(endpoint);

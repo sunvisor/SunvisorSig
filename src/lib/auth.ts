@@ -5,6 +5,7 @@ import { decodeSessionToken, encodeSessionToken } from "@/lib/auth-session";
 import { prisma } from "@/lib/prisma";
 import { AppError, isAppError, type AppErrorCode } from "@/lib/app-error";
 import { verifyPassword } from "@/lib/password";
+import { assertRateLimit } from "@/lib/rate-limit";
 
 const SESSION_COOKIE_NAME = "sunvisor_session";
 const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 7;
@@ -116,6 +117,13 @@ export async function authenticateUser(email: string, password: string) {
   if (!normalizedEmail || !password) {
     throw new AppError("INVALID_INPUT", "メールアドレスとパスワードを入力してください。");
   }
+
+  assertRateLimit({
+    key: `login:${normalizedEmail}`,
+    limit: 5,
+    windowMs: 1000 * 60 * 10,
+    message: "ログイン試行回数が多すぎます。しばらく待ってから再度お試しください。",
+  });
 
   const user = await prisma.user.findUnique({
     where: { email: normalizedEmail },
