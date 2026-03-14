@@ -99,6 +99,12 @@ docker compose down
 
 ## 運用コマンド
 
+リリース前チェック:
+
+```bash
+docs/release-checklist.md
+```
+
 ## テスト
 
 unit test:
