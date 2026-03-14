@@ -58,21 +58,49 @@ export async function getWebhookEndpoints() {
   });
 }
 
+export async function getForumWebhookEndpoints(forumId: string) {
+  return prisma.webhookEndpoint.findMany({
+    where: { forumId },
+    orderBy: {
+      createdAt: "desc",
+    },
+    include: {
+      createdByUser: {
+        select: {
+          displayName: true,
+          email: true,
+        },
+      },
+    },
+  });
+}
+
 export async function createWebhookEndpoint(formData: FormData) {
   "use server";
 
   const currentUser = await requireSystemAdmin();
+  const forumId = String(formData.get("forumId") ?? "");
   const name = String(formData.get("name") ?? "").trim();
   const typeValue = String(formData.get("type") ?? "");
   const webhookUrl = normalizeWebhookUrl(formData.get("webhookUrl"));
   const events = parseEvents(formData);
 
-  if (!name || !isWebhookEndpointType(typeValue)) {
+  if (!forumId || !name || !isWebhookEndpointType(typeValue)) {
     throw new AppError("INVALID_INPUT", "必須項目が不足しています。");
+  }
+
+  const forum = await prisma.forum.findUnique({
+    where: { id: forumId },
+    select: { id: true, name: true },
+  });
+
+  if (!forum) {
+    throw new AppError("INVALID_INPUT", "対象のフォーラムが見つかりません。");
   }
 
   const endpoint = await prisma.webhookEndpoint.create({
     data: {
+      forumId,
       name,
       type: typeValue,
       webhookUrl,
@@ -91,11 +119,12 @@ export async function createWebhookEndpoint(formData: FormData) {
       type: endpoint.type,
       events: endpoint.events,
       enabled: endpoint.enabled,
+      forumId,
     },
   });
 
-  revalidatePath("/admin/webhooks");
-  redirect("/admin/webhooks" as Route);
+  revalidatePath(`/forums/${forumId}/settings`);
+  redirect(`/forums/${forumId}/settings` as Route);
 }
 
 export async function createWebhookEndpointAction(
@@ -124,6 +153,13 @@ export async function createWebhookEndpointAction(
 async function getEndpointOrThrow(id: string) {
   const endpoint = await prisma.webhookEndpoint.findUnique({
     where: { id },
+    include: {
+      forum: {
+        select: {
+          id: true,
+        },
+      },
+    },
   });
 
   if (!endpoint) {
@@ -164,7 +200,7 @@ export async function toggleWebhookEndpoint(formData: FormData) {
     },
   });
 
-  revalidatePath("/admin/webhooks");
+  revalidatePath(`/forums/${endpoint.forum.id}/settings`);
 }
 
 export async function toggleWebhookEndpointAction(
@@ -220,7 +256,7 @@ export async function deleteWebhookEndpoint(formData: FormData) {
     },
   });
 
-  revalidatePath("/admin/webhooks");
+  revalidatePath(`/forums/${endpoint.forum.id}/settings`);
 }
 
 export async function deleteWebhookEndpointAction(
@@ -270,6 +306,7 @@ export async function testWebhookEndpoint(formData: FormData) {
     targetLabel: endpoint.name,
     metadata: {
       type: endpoint.type,
+      forumId: endpoint.forum.id,
     },
   });
 }

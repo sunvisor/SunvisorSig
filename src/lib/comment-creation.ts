@@ -54,6 +54,7 @@ export async function createComment(formData: FormData) {
   publishChannelActivity(channelId);
   await deliverWebhookEvent({
     type: "COMMENT_CREATED",
+    forumId,
     title: "新しいコメント",
     summary: `${currentUser.displayName} が「${post.title}」にコメントしました。`,
     actorDisplayName: currentUser.displayName,
@@ -70,6 +71,7 @@ export async function createComment(formData: FormData) {
   if (mentionTargets.length > 0) {
     await deliverWebhookEvent({
       type: "MENTIONED",
+      forumId,
       title: "コメントでメンション",
       summary: `${currentUser.displayName} が「${post.title}」のコメントでメンションしました。`,
       actorDisplayName: currentUser.displayName,

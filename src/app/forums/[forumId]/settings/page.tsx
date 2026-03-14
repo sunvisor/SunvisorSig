@@ -9,6 +9,8 @@ import { InvitationCancelForm } from "@/components/invitation-cancel-form";
 import { InvitationCreateForm } from "@/components/invitation-create-form";
 import { InvitationEmailPreviewButton } from "@/components/invitation-email-preview-button";
 import { PrimaryLink, SectionCard } from "@/components/forum-ui";
+import { WebhookCreateForm } from "@/components/webhook-create-form";
+import { WebhookEndpointRow } from "@/components/webhook-endpoint-row";
 import { getActiveUsers, getForum } from "@/lib/forum-data";
 import { getCurrentUser, isSystemAdmin } from "@/lib/auth";
 import { getForumHeroStyle, getForumPageStyle } from "@/lib/forum-theme";
@@ -24,6 +26,13 @@ import {
   removeForumMemberAction,
   updateForumAction,
 } from "@/lib/forum-management";
+import {
+  createWebhookEndpointAction,
+  deleteWebhookEndpointAction,
+  initialWebhookActionState,
+  testWebhookEndpointAction,
+  toggleWebhookEndpointAction,
+} from "@/lib/webhook-settings";
 import { formatDateTime } from "@/lib/date-time";
 import {
   deleteForumAction,
@@ -216,6 +225,45 @@ export default async function ForumSettingsPage({ params }: ForumSettingsPagePro
                   </div>
                 );
               })}
+            </div>
+          )}
+        </SectionCard>
+      </div>
+      <div className="grid gap-6 lg:grid-cols-[1fr_1.2fr]">
+        <SectionCard title="Webhook 連携を追加">
+          <WebhookCreateForm
+            action={createWebhookEndpointAction}
+            forumId={forum.id}
+            initialState={initialWebhookActionState}
+          />
+        </SectionCard>
+        <SectionCard title="Webhook 連携一覧">
+          {forum.webhookEndpoints.length === 0 ? (
+            <p className={ui.text.body}>このフォーラムには Webhook 設定がまだありません。</p>
+          ) : (
+            <div className="grid gap-4">
+              {forum.webhookEndpoints.map((endpoint) => (
+                <WebhookEndpointRow
+                  key={endpoint.id}
+                  deleteAction={deleteWebhookEndpointAction}
+                  endpoint={{
+                    id: endpoint.id,
+                    name: endpoint.name,
+                    type: endpoint.type,
+                    enabled: endpoint.enabled,
+                    events: endpoint.events,
+                    webhookUrl: endpoint.webhookUrl,
+                    createdAtLabel: formatDateTime(endpoint.createdAt),
+                    createdByLabel:
+                      endpoint.createdByUser.email
+                        ? `${endpoint.createdByUser.displayName} (${endpoint.createdByUser.email})`
+                        : endpoint.createdByUser.displayName,
+                  }}
+                  initialState={initialWebhookActionState}
+                  testAction={testWebhookEndpointAction}
+                  toggleAction={toggleWebhookEndpointAction}
+                />
+              ))}
             </div>
           )}
         </SectionCard>

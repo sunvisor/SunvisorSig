@@ -76,6 +76,12 @@ export const getForum = cache(async (forumId: string) => {
         },
         orderBy: { createdAt: "desc" },
       },
+      webhookEndpoints: {
+        include: {
+          createdByUser: true,
+        },
+        orderBy: { createdAt: "desc" },
+      },
     },
   });
 });

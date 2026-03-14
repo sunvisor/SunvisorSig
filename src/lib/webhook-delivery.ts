@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 
 export type WebhookEventPayload = {
   type: WebhookEventType | "TEST_MESSAGE";
+  forumId?: string;
   title: string;
   summary: string;
   actorDisplayName: string;
@@ -152,8 +153,13 @@ export async function sendWebhookTestMessage(endpoint: Pick<WebhookEndpoint, "ty
 }
 
 export async function deliverWebhookEvent(event: WebhookEventPayload) {
+  if (!event.forumId) {
+    return;
+  }
+
   const endpoints = await prisma.webhookEndpoint.findMany({
     where: {
+      forumId: event.forumId,
       enabled: true,
       events: {
         has: event.type as WebhookEventType,
@@ -176,4 +182,3 @@ export async function deliverWebhookEvent(event: WebhookEventPayload) {
     }),
   );
 }
-

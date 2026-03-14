@@ -150,6 +150,7 @@ export async function updatePostStatus(formData: FormData) {
   if (result.previousStatus !== result.nextStatus) {
     await deliverWebhookEvent({
       type: "STATUS_CHANGED",
+      forumId: result.forumId,
       title: "投稿状態の変更",
       summary: `${currentUser.displayName} が「${result.postTitle}」の状態を「${getPostStatusLabel(result.nextStatus)}」に変更しました。`,
       actorDisplayName: currentUser.displayName,

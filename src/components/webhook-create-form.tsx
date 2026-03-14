@@ -21,15 +21,17 @@ function WebhookCreateSubmitButton() {
 }
 
 type WebhookCreateFormProps = Readonly<{
+  forumId: string;
   action: (state: FormActionState, formData: FormData) => Promise<FormActionState>;
   initialState: FormActionState;
 }>;
 
-export function WebhookCreateForm({ action, initialState }: WebhookCreateFormProps) {
+export function WebhookCreateForm({ forumId, action, initialState }: WebhookCreateFormProps) {
   const [state, formAction] = useActionState(action, initialState);
 
   return (
     <form action={formAction} className={ui.form.layout}>
+      <input name="forumId" type="hidden" value={forumId} />
       <div className={ui.form.group}>
         <label className={ui.text.label} htmlFor="webhook-name">
           表示名
@@ -93,4 +95,3 @@ export function WebhookCreateForm({ action, initialState }: WebhookCreateFormPro
     </form>
   );
 }
-

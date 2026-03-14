@@ -49,6 +49,7 @@ export async function createPost(formData: FormData) {
   publishChannelActivity(channelId);
   await deliverWebhookEvent({
     type: "POST_CREATED",
+    forumId,
     title: "新しい投稿",
     summary: `${currentUser.displayName} が「${post.title}」を投稿しました。`,
     actorDisplayName: currentUser.displayName,
@@ -65,6 +66,7 @@ export async function createPost(formData: FormData) {
   if (mentionTargets.length > 0) {
     await deliverWebhookEvent({
       type: "MENTIONED",
+      forumId,
       title: "投稿でメンション",
       summary: `${currentUser.displayName} が投稿「${post.title}」でメンションしました。`,
       actorDisplayName: currentUser.displayName,
