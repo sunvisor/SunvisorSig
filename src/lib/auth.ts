@@ -110,6 +110,28 @@ export async function requireSystemAdmin() {
   return user;
 }
 
+export async function authenticateUser(email: string, password: string) {
+  const normalizedEmail = email.trim().toLowerCase();
+
+  if (!normalizedEmail || !password) {
+    throw new AppError("INVALID_INPUT", "メールアドレスとパスワードを入力してください。");
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { email: normalizedEmail },
+  });
+
+  if (!user || !user.passwordHash || user.status !== "ACTIVE") {
+    throw new AppError("INVITATION_NOT_FOUND", "メールアドレスまたはパスワードが正しくありません。");
+  }
+
+  if (!verifyPassword(password, user.passwordHash)) {
+    throw new AppError("INVITATION_NOT_FOUND", "メールアドレスまたはパスワードが正しくありません。");
+  }
+
+  return user;
+}
+
 export async function loginAction(
   _previousState: LoginActionState,
   formData: FormData,
@@ -117,24 +139,9 @@ export async function loginAction(
   "use server";
 
   try {
-    const email = String(formData.get("email") ?? "").trim().toLowerCase();
+    const email = String(formData.get("email") ?? "");
     const password = String(formData.get("password") ?? "");
-
-    if (!email || !password) {
-      throw new AppError("INVALID_INPUT", "メールアドレスとパスワードを入力してください。");
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { email },
-    });
-
-    if (!user || !user.passwordHash || user.status !== "ACTIVE") {
-      throw new AppError("INVITATION_NOT_FOUND", "メールアドレスまたはパスワードが正しくありません。");
-    }
-
-    if (!verifyPassword(password, user.passwordHash)) {
-      throw new AppError("INVITATION_NOT_FOUND", "メールアドレスまたはパスワードが正しくありません。");
-    }
+    const user = await authenticateUser(email, password);
 
     await setSessionCookie(user.id);
   } catch (error) {
