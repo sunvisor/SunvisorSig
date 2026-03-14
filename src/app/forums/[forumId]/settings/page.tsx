@@ -7,10 +7,12 @@ import { ForumMemberRemoveForm } from "@/components/forum-member-remove-form";
 import { ForumShell } from "@/components/forum-shell";
 import { InvitationCancelForm } from "@/components/invitation-cancel-form";
 import { InvitationCreateForm } from "@/components/invitation-create-form";
+import { InvitationEmailPreviewButton } from "@/components/invitation-email-preview-button";
 import { PrimaryLink, SectionCard } from "@/components/forum-ui";
 import { getActiveUsers, getForum } from "@/lib/forum-data";
 import { getCurrentUser, isSystemAdmin } from "@/lib/auth";
 import { getForumHeroStyle, getForumPageStyle } from "@/lib/forum-theme";
+import { buildInvitationEmail, hasSmtpConfig } from "@/lib/invitation-email";
 import {
   addForumMemberAction,
   createInvitationAction,
@@ -57,6 +59,7 @@ export default async function ForumSettingsPage({ params }: ForumSettingsPagePro
     (user) => !forum.members.some((member) => member.userId === user.id),
   );
   const appUrl = process.env.APP_URL?.replace(/\/$/, "") ?? "http://localhost:3000";
+  const smtpConfigured = hasSmtpConfig();
 
   return (
     <ForumShell
@@ -159,6 +162,12 @@ export default async function ForumSettingsPage({ params }: ForumSettingsPagePro
               {forum.invitations.map((invitation) => {
                 const activationUrl = `${appUrl}/activate?token=${invitation.token}`;
                 const canCancel = invitation.status === "PENDING";
+                const emailPreview = buildInvitationEmail({
+                  forumName: forum.name,
+                  recipientEmail: invitation.email,
+                  token: invitation.token,
+                  expiresAt: invitation.expiresAt,
+                });
 
                 return (
                   <div key={invitation.id} className={`${ui.surface.mutedCard} grid gap-3 p-5`}>
@@ -187,6 +196,15 @@ export default async function ForumSettingsPage({ params }: ForumSettingsPagePro
                         {activationUrl}
                       </p>
                     </div>
+                    {!smtpConfigured ? (
+                      <div className="flex justify-start">
+                        <InvitationEmailPreviewButton
+                          recipientEmail={invitation.email}
+                          subject={emailPreview.subject}
+                          text={emailPreview.text}
+                        />
+                      </div>
+                    ) : null}
                     <div className="flex flex-wrap gap-4">
                       <span className={ui.text.subtleMeta}>
                         Created {formatDateTime(invitation.createdAt)}

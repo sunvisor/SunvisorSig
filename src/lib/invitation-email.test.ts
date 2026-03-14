@@ -34,7 +34,28 @@ describe("sendInvitationEmail", () => {
 
   it("falls back to log delivery when SMTP is not configured", async () => {
     const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
-    const { sendInvitationEmail } = await import("@/lib/invitation-email");
+    const { buildInvitationEmail, sendInvitationEmail } = await import("@/lib/invitation-email");
+
+    expect(
+      buildInvitationEmail({
+        forumName: "Acme Forum",
+        recipientEmail: "user@example.com",
+        token: "token-123",
+        expiresAt: new Date("2026-03-20T00:00:00Z"),
+      }),
+    ).toEqual({
+      subject: "【Acme Forum】フォーラム招待",
+      text: [
+        "Acme Forum に招待されました。",
+        "",
+        "以下のリンクからアカウントを有効化してください。",
+        "http://localhost:3000/activate?token=token-123",
+        "",
+        "有効期限: 2026-03-20T00:00:00.000Z",
+      ].join("\n"),
+      activationUrl: "http://localhost:3000/activate?token=token-123",
+      recipientEmail: "user@example.com",
+    });
 
     const result = await sendInvitationEmail({
       forumName: "Acme Forum",

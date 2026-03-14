@@ -1,19 +1,44 @@
 import nodemailer from "nodemailer";
 
-function getAppUrl() {
+export function getAppUrl() {
   return (process.env.APP_URL?.replace(/\/$/, "") ?? "http://localhost:3000");
 }
 
-function getActivationUrl(token: string) {
+export function getActivationUrl(token: string) {
   return `${getAppUrl()}/activate?token=${token}`;
 }
 
-function hasSmtpConfig() {
+export function hasSmtpConfig() {
   return Boolean(
     process.env.SMTP_HOST &&
       process.env.SMTP_PORT &&
       process.env.SMTP_FROM,
   );
+}
+
+export function buildInvitationEmail(input: {
+  forumName: string;
+  recipientEmail: string;
+  token: string;
+  expiresAt: Date;
+}) {
+  const activationUrl = getActivationUrl(input.token);
+  const subject = `【${input.forumName}】フォーラム招待`;
+  const text = [
+    `${input.forumName} に招待されました。`,
+    "",
+    "以下のリンクからアカウントを有効化してください。",
+    activationUrl,
+    "",
+    `有効期限: ${input.expiresAt.toISOString()}`,
+  ].join("\n");
+
+  return {
+    subject,
+    text,
+    activationUrl,
+    recipientEmail: input.recipientEmail,
+  };
 }
 
 export async function sendInvitationEmail(input: {
@@ -22,7 +47,7 @@ export async function sendInvitationEmail(input: {
   token: string;
   expiresAt: Date;
 }) {
-  const activationUrl = getActivationUrl(input.token);
+  const email = buildInvitationEmail(input);
 
   if (!hasSmtpConfig()) {
     console.log(
@@ -31,13 +56,13 @@ export async function sendInvitationEmail(input: {
         `to=${input.recipientEmail}`,
         `forum=${input.forumName}`,
         `expiresAt=${input.expiresAt.toISOString()}`,
-        `activationUrl=${activationUrl}`,
+        `activationUrl=${email.activationUrl}`,
       ].join(" "),
     );
 
     return {
       deliveryMode: "log" as const,
-      activationUrl,
+      activationUrl: email.activationUrl,
     };
   }
 
@@ -57,19 +82,12 @@ export async function sendInvitationEmail(input: {
   await transporter.sendMail({
     from: process.env.SMTP_FROM,
     to: input.recipientEmail,
-    subject: `【${input.forumName}】フォーラム招待`,
-    text: [
-      `${input.forumName} に招待されました。`,
-      "",
-      "以下のリンクからアカウントを有効化してください。",
-      activationUrl,
-      "",
-      `有効期限: ${input.expiresAt.toISOString()}`,
-    ].join("\n"),
+    subject: email.subject,
+    text: email.text,
   });
 
   return {
     deliveryMode: "smtp" as const,
-    activationUrl,
+    activationUrl: email.activationUrl,
   };
 }
