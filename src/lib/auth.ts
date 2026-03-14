@@ -1,18 +1,13 @@
-import { createHmac, timingSafeEqual } from "node:crypto";
 import type { Route } from "next";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { decodeSessionToken, encodeSessionToken } from "@/lib/auth-session";
 import { prisma } from "@/lib/prisma";
 import { AppError, isAppError, type AppErrorCode } from "@/lib/app-error";
 import { verifyPassword } from "@/lib/password";
 
 const SESSION_COOKIE_NAME = "sunvisor_session";
 const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 7;
-
-type SessionPayload = {
-  userId: string;
-  expiresAt: number;
-};
 
 export type LoginActionState = {
   ok: boolean;
@@ -35,60 +30,21 @@ function getAuthSecret() {
   return secret;
 }
 
-function signValue(value: string) {
-  return createHmac("sha256", getAuthSecret()).update(value).digest("hex");
-}
-
-function encodeSession(payload: SessionPayload) {
-  const data = Buffer.from(JSON.stringify(payload)).toString("base64url");
-  const signature = signValue(data);
-
-  return `${data}.${signature}`;
-}
-
-function decodeSession(token: string): SessionPayload | null {
-  const [data, signature] = token.split(".");
-
-  if (!data || !signature) {
-    return null;
-  }
-
-  const expectedSignature = signValue(data);
-  const providedBuffer = Buffer.from(signature);
-  const expectedBuffer = Buffer.from(expectedSignature);
-
-  if (providedBuffer.length !== expectedBuffer.length) {
-    return null;
-  }
-
-  if (!timingSafeEqual(providedBuffer, expectedBuffer)) {
-    return null;
-  }
-
-  try {
-    const payload = JSON.parse(Buffer.from(data, "base64url").toString("utf8")) as SessionPayload;
-
-    if (!payload.userId || !payload.expiresAt) {
-      return null;
-    }
-
-    return payload;
-  } catch {
-    return null;
-  }
-}
-
 async function setSessionCookie(userId: string) {
   const cookieStore = await cookies();
   const expiresAt = Date.now() + SESSION_MAX_AGE_SECONDS * 1000;
 
-  cookieStore.set(SESSION_COOKIE_NAME, encodeSession({ userId, expiresAt }), {
+  cookieStore.set(
+    SESSION_COOKIE_NAME,
+    encodeSessionToken({ userId, expiresAt }, getAuthSecret()),
+    {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
     path: "/",
     maxAge: SESSION_MAX_AGE_SECONDS,
-  });
+    },
+  );
 }
 
 export async function clearSession() {
@@ -105,7 +61,7 @@ export async function getCurrentUser() {
     return null;
   }
 
-  const payload = decodeSession(sessionCookie);
+  const payload = decodeSessionToken(sessionCookie, getAuthSecret());
 
   if (!payload || payload.expiresAt <= Date.now()) {
     return null;
