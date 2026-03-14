@@ -77,3 +77,8 @@ docker compose -f docker-compose.prod.yml down
 - 本番では seed データを投入しない
 - `AUTH_SECRET` は十分に長いランダム値へ変更する
 - webhook URL は secret として扱う
+
+## 関連ドキュメント
+
+- `docs/operations.md`
+- `docs/backup-and-restore.md`

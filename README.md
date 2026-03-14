@@ -111,6 +111,18 @@ docs/release-checklist.md
 docs/production.md
 ```
 
+運用手順:
+
+```bash
+docs/operations.md
+```
+
+バックアップ / 復旧:
+
+```bash
+docs/backup-and-restore.md
+```
+
 ## テスト
 
 unit test:
