@@ -8,8 +8,12 @@ import {
   publishChannelActivity,
   publishNotificationRefresh,
 } from "@/lib/notification-events";
-import { createPostMentionNotifications } from "@/lib/notification-service";
+import {
+  createPostMentionNotifications,
+  findMentionTargetsInForum,
+} from "@/lib/notification-service";
 import { prisma } from "@/lib/prisma";
+import { deliverWebhookEvent } from "@/lib/webhook-delivery";
 
 export async function createPost(formData: FormData) {
   "use server";
@@ -43,6 +47,33 @@ export async function createPost(formData: FormData) {
 
   publishNotificationRefresh(notifiedUserIds);
   publishChannelActivity(channelId);
+  await deliverWebhookEvent({
+    type: "POST_CREATED",
+    title: "新しい投稿",
+    summary: `${currentUser.displayName} が「${post.title}」を投稿しました。`,
+    actorDisplayName: currentUser.displayName,
+    forumName: post.channel.forum.name,
+    channelName: post.channel.name,
+    postTitle: post.title,
+    href: `/forums/${forumId}/channels/${channelId}/posts/${post.id}`,
+  });
+  const mentionTargets = await findMentionTargetsInForum({
+    forumId,
+    markdown: bodyMarkdown,
+    actorUserId: currentUser.id,
+  });
+  if (mentionTargets.length > 0) {
+    await deliverWebhookEvent({
+      type: "MENTIONED",
+      title: "投稿でメンション",
+      summary: `${currentUser.displayName} が投稿「${post.title}」でメンションしました。`,
+      actorDisplayName: currentUser.displayName,
+      forumName: post.channel.forum.name,
+      channelName: post.channel.name,
+      postTitle: post.title,
+      href: `/forums/${forumId}/channels/${channelId}/posts/${post.id}`,
+    });
+  }
 
   revalidatePath("/forums");
   revalidatePath(`/forums/${forumId}`);
@@ -116,5 +147,14 @@ export async function createPostRecord(input: {
     },
   });
 
-  return post;
+  return prisma.post.findUniqueOrThrow({
+    where: { id: post.id },
+    include: {
+      channel: {
+        include: {
+          forum: true,
+        },
+      },
+    },
+  });
 }

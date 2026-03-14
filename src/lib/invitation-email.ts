@@ -1,8 +1,5 @@
 import nodemailer from "nodemailer";
-
-export function getAppUrl() {
-  return (process.env.APP_URL?.replace(/\/$/, "") ?? "http://localhost:3000");
-}
+import { getAppUrl } from "@/lib/app-url";
 
 export function getActivationUrl(token: string) {
   return `${getAppUrl()}/activate?token=${token}`;

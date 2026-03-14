@@ -13,6 +13,7 @@ import {
 import { createCommentNotifications } from "@/lib/notification-service";
 import { getPostStatusLabel } from "@/lib/post-status";
 import { prisma } from "@/lib/prisma";
+import { deliverWebhookEvent } from "@/lib/webhook-delivery";
 
 const allowedStatuses = new Set(["", "TODO", "IN_PROGRESS", "DONE"]);
 
@@ -36,7 +37,11 @@ export async function updatePostStatusRecord(input: {
   const post = await prisma.post.findUnique({
     where: { id: postId },
     include: {
-      channel: true,
+      channel: {
+        include: {
+          forum: true,
+        },
+      },
     },
   });
 
@@ -67,6 +72,10 @@ export async function updatePostStatusRecord(input: {
       postId,
       channelId,
       forumId,
+      forumName: post.channel.forum.name,
+      channelName: post.channel.name,
+      postTitle: post.title,
+      previousStatus: post.status,
       nextStatus,
       notifiedUserIds: [] as string[],
       redirectPath,
@@ -110,6 +119,10 @@ export async function updatePostStatusRecord(input: {
     postId,
     channelId,
     forumId,
+    forumName: post.channel.forum.name,
+    channelName: post.channel.name,
+    postTitle: post.title,
+    previousStatus: post.status,
     nextStatus,
     notifiedUserIds,
     redirectPath,
@@ -134,6 +147,18 @@ export async function updatePostStatus(formData: FormData) {
   publishNotificationRefresh(result.notifiedUserIds);
   publishPostActivity(result.postId);
   publishChannelActivity(result.channelId);
+  if (result.previousStatus !== result.nextStatus) {
+    await deliverWebhookEvent({
+      type: "STATUS_CHANGED",
+      title: "投稿状態の変更",
+      summary: `${currentUser.displayName} が「${result.postTitle}」の状態を「${getPostStatusLabel(result.nextStatus)}」に変更しました。`,
+      actorDisplayName: currentUser.displayName,
+      forumName: result.forumName,
+      channelName: result.channelName,
+      postTitle: result.postTitle,
+      href: `/forums/${result.forumId}/channels/${result.channelId}/posts/${result.postId}`,
+    });
+  }
 
   revalidatePath(`/forums/${result.forumId}/channels/${result.channelId}`);
   revalidatePath(result.redirectPath);

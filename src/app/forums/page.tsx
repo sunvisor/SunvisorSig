@@ -30,6 +30,7 @@ export default async function ForumsPage() {
             <>
               <PrimaryLink href={"/forums/new" as Route} icon={Plus}>フォーラム作成</PrimaryLink>
               <PrimaryLink href={"/admin/audit-logs" as Route}>監査ログ</PrimaryLink>
+              <PrimaryLink href={"/admin/webhooks" as Route}>Webhook 連携</PrimaryLink>
             </>
           ) : null}
           <PrimaryLink href={"/forums" as Route}>一覧を更新</PrimaryLink>

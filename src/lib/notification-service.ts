@@ -20,6 +20,17 @@ function extractMentionHandles(markdown: string) {
   return [...handles];
 }
 
+export async function findMentionTargetsInForum(params: {
+  forumId: string;
+  markdown: string;
+  actorUserId: string;
+  client?: NotificationClient;
+}) {
+  const client = params.client ?? prisma;
+
+  return getMentionTargets(client, params.forumId, params.markdown, params.actorUserId);
+}
+
 async function getMentionTargets(
   client: NotificationClient,
   forumId: string,

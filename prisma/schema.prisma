@@ -53,6 +53,20 @@ enum NotificationType {
   CHANNEL_COMMENT
 }
 
+enum WebhookEndpointType {
+  SLACK
+  DISCORD
+  TEAMS
+  GOOGLE_CHAT
+}
+
+enum WebhookEventType {
+  POST_CREATED
+  COMMENT_CREATED
+  MENTIONED
+  STATUS_CHANGED
+}
+
 enum AuditActionType {
   FORUM_CREATED
   FORUM_UPDATED
@@ -63,6 +77,10 @@ enum AuditActionType {
   FORUM_MEMBER_REMOVED
   INVITATION_CREATED
   INVITATION_CANCELED
+  WEBHOOK_CREATED
+  WEBHOOK_UPDATED
+  WEBHOOK_DELETED
+  WEBHOOK_TESTED
 }
 
 enum AuditTargetType {
@@ -70,28 +88,30 @@ enum AuditTargetType {
   CHANNEL
   FORUM_MEMBER
   INVITATION
+  WEBHOOK
 }
 
 model User {
-  id                   String                @id @default(uuid()) @db.Uuid
-  displayName          String
-  email                String?               @unique
-  mentionHandle        String?               @unique
-  passwordHash         String?
-  systemRole           SystemRole            @default(USER)
-  status               UserStatus            @default(INVITED)
-  createdAt            DateTime              @default(now())
-  updatedAt            DateTime              @updatedAt
-  createdForums        Forum[]               @relation("ForumCreator")
-  createdInvitations   Invitation[]          @relation("InvitationCreator")
-  forumMemberships     ForumMember[]
-  createdChannels      Channel[]             @relation("ChannelCreator")
-  posts                Post[]
-  comments             Comment[]
-  channelSubscriptions ChannelSubscription[]
-  notifications        Notification[]        @relation("NotificationRecipient")
-  notificationActors   Notification[]        @relation("NotificationActor")
-  auditLogs            AuditLog[]
+  id                      String                @id @default(uuid()) @db.Uuid
+  displayName             String
+  email                   String?               @unique
+  mentionHandle           String?               @unique
+  passwordHash            String?
+  systemRole              SystemRole            @default(USER)
+  status                  UserStatus            @default(INVITED)
+  createdAt               DateTime              @default(now())
+  updatedAt               DateTime              @updatedAt
+  createdForums           Forum[]               @relation("ForumCreator")
+  createdInvitations      Invitation[]          @relation("InvitationCreator")
+  forumMemberships        ForumMember[]
+  createdChannels         Channel[]             @relation("ChannelCreator")
+  posts                   Post[]
+  comments                Comment[]
+  channelSubscriptions    ChannelSubscription[]
+  notifications           Notification[]        @relation("NotificationRecipient")
+  notificationActors      Notification[]        @relation("NotificationActor")
+  auditLogs               AuditLog[]
+  createdWebhookEndpoints WebhookEndpoint[]     @relation("WebhookEndpointCreator")
 }
 
 model Forum {
@@ -304,4 +324,19 @@ model AuditLog {
   @@index([createdAt])
   @@index([actionType, createdAt])
   @@index([actorUserId, createdAt])
+}
+
+model WebhookEndpoint {
+  id              String              @id @default(uuid()) @db.Uuid
+  name            String
+  type            WebhookEndpointType
+  webhookUrl      String
+  events          WebhookEventType[]
+  enabled         Boolean             @default(true)
+  createdByUserId String              @db.Uuid
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  createdByUser   User                @relation("WebhookEndpointCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+
+  @@index([enabled, type])
 }

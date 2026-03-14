@@ -8,8 +8,12 @@ import {
   publishNotificationRefresh,
   publishPostActivity,
 } from "@/lib/notification-events";
-import { createCommentNotifications } from "@/lib/notification-service";
+import {
+  createCommentNotifications,
+  findMentionTargetsInForum,
+} from "@/lib/notification-service";
 import { prisma } from "@/lib/prisma";
+import { deliverWebhookEvent } from "@/lib/webhook-delivery";
 
 export const initialCommentCreateActionState = initialFormActionState;
 
@@ -48,6 +52,33 @@ export async function createComment(formData: FormData) {
   publishNotificationRefresh(notifiedUserIds);
   publishPostActivity(postId);
   publishChannelActivity(channelId);
+  await deliverWebhookEvent({
+    type: "COMMENT_CREATED",
+    title: "新しいコメント",
+    summary: `${currentUser.displayName} が「${post.title}」にコメントしました。`,
+    actorDisplayName: currentUser.displayName,
+    forumName: post.channel.forum.name,
+    channelName: post.channel.name,
+    postTitle: post.title,
+    href: `/forums/${forumId}/channels/${channelId}/posts/${postId}`,
+  });
+  const mentionTargets = await findMentionTargetsInForum({
+    forumId,
+    markdown: bodyMarkdown,
+    actorUserId: currentUser.id,
+  });
+  if (mentionTargets.length > 0) {
+    await deliverWebhookEvent({
+      type: "MENTIONED",
+      title: "コメントでメンション",
+      summary: `${currentUser.displayName} が「${post.title}」のコメントでメンションしました。`,
+      actorDisplayName: currentUser.displayName,
+      forumName: post.channel.forum.name,
+      channelName: post.channel.name,
+      postTitle: post.title,
+      href: `/forums/${forumId}/channels/${channelId}/posts/${postId}`,
+    });
+  }
 
   revalidatePath(`/forums/${forumId}/channels/${channelId}/posts/${postId}`);
 }
@@ -74,7 +105,11 @@ export async function createCommentRecord(input: {
   const post = await prisma.post.findUnique({
     where: { id: postId },
     include: {
-      channel: true,
+      channel: {
+        include: {
+          forum: true,
+        },
+      },
     },
   });
 
