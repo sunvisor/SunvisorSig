@@ -13,19 +13,24 @@ import { prisma } from "@/lib/prisma";
 
 export const initialCommentEditActionState = initialFormActionState;
 
-export async function updateComment(formData: FormData) {
-  "use server";
-
-  const forumId = String(formData.get("forumId") ?? "");
-  const channelId = String(formData.get("channelId") ?? "");
-  const postId = String(formData.get("postId") ?? "");
-  const commentId = String(formData.get("commentId") ?? "");
-  const bodyMarkdown = String(formData.get("bodyMarkdown") ?? "").trim();
-  const currentUser = await requireCurrentUser();
-  const files = formData
-    .getAll("attachments")
-    .filter((value): value is File => value instanceof File && value.size > 0);
-
+export async function updateCommentRecord(input: {
+  forumId: string;
+  channelId: string;
+  postId: string;
+  commentId: string;
+  bodyMarkdown: string;
+  actingUser: {
+    id: string;
+    displayName: string;
+  };
+  files?: File[];
+}) {
+  const forumId = input.forumId;
+  const channelId = input.channelId;
+  const postId = input.postId;
+  const commentId = input.commentId;
+  const bodyMarkdown = input.bodyMarkdown.trim();
+  const files = input.files ?? [];
   if (!forumId || !channelId || !postId || !commentId || !bodyMarkdown) {
     throw new AppError("INVALID_INPUT", "必須項目が不足しています。");
   }
@@ -55,7 +60,7 @@ export async function updateComment(formData: FormData) {
     throw new AppError("INVALID_INPUT", "コメントが見つかりません。");
   }
 
-  if (comment.authorUserId !== currentUser.id) {
+  if (comment.authorUserId !== input.actingUser.id) {
     throw new AppError("FORBIDDEN", "自分のコメントだけ編集できます。");
   }
 
@@ -90,17 +95,47 @@ export async function updateComment(formData: FormData) {
     channelId,
     postAuthorUserId: comment.post.authorUserId,
     commentId: comment.id,
-    actorUserId: currentUser.id,
-    actorDisplayName: currentUser.displayName,
+    actorUserId: input.actingUser.id,
+    actorDisplayName: input.actingUser.displayName,
     bodyMarkdown,
     notifyThreadParticipants: false,
   });
 
-  publishNotificationRefresh(notifiedUserIds);
-  publishPostActivity(postId);
-  publishChannelActivity(channelId);
+  return {
+    forumId,
+    channelId,
+    postId,
+    commentId,
+    notifiedUserIds,
+  };
+}
 
-  revalidatePath(`/forums/${forumId}/channels/${channelId}/posts/${postId}`);
+export async function updateComment(formData: FormData) {
+  "use server";
+
+  const currentUser = await requireCurrentUser();
+  const files = formData
+    .getAll("attachments")
+    .filter((value): value is File => value instanceof File && value.size > 0);
+
+  const result = await updateCommentRecord({
+    forumId: String(formData.get("forumId") ?? ""),
+    channelId: String(formData.get("channelId") ?? ""),
+    postId: String(formData.get("postId") ?? ""),
+    commentId: String(formData.get("commentId") ?? ""),
+    bodyMarkdown: String(formData.get("bodyMarkdown") ?? ""),
+    actingUser: {
+      id: currentUser.id,
+      displayName: currentUser.displayName,
+    },
+    files,
+  });
+
+  publishNotificationRefresh(result.notifiedUserIds);
+  publishPostActivity(result.postId);
+  publishChannelActivity(result.channelId);
+
+  revalidatePath(`/forums/${result.forumId}/channels/${result.channelId}/posts/${result.postId}`);
 }
 
 export async function updateCommentAction(

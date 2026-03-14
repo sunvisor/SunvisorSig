@@ -13,19 +13,24 @@ import { prisma } from "@/lib/prisma";
 
 export const initialPostEditActionState = initialFormActionState;
 
-export async function updatePost(formData: FormData) {
-  "use server";
-
-  const forumId = String(formData.get("forumId") ?? "");
-  const channelId = String(formData.get("channelId") ?? "");
-  const postId = String(formData.get("postId") ?? "");
-  const title = String(formData.get("title") ?? "").trim();
-  const bodyMarkdown = String(formData.get("bodyMarkdown") ?? "").trim();
-  const currentUser = await requireCurrentUser();
-  const files = formData
-    .getAll("attachments")
-    .filter((value): value is File => value instanceof File && value.size > 0);
-
+export async function updatePostRecord(input: {
+  forumId: string;
+  channelId: string;
+  postId: string;
+  title: string;
+  bodyMarkdown: string;
+  actingUser: {
+    id: string;
+    displayName: string;
+  };
+  files?: File[];
+}) {
+  const forumId = input.forumId;
+  const channelId = input.channelId;
+  const postId = input.postId;
+  const title = input.title.trim();
+  const bodyMarkdown = input.bodyMarkdown.trim();
+  const files = input.files ?? [];
   if (!forumId || !channelId || !postId || !title || !bodyMarkdown) {
     throw new AppError("INVALID_INPUT", "必須項目が不足しています。");
   }
@@ -46,7 +51,7 @@ export async function updatePost(formData: FormData) {
     throw new AppError("INVALID_INPUT", "投稿が見つかりません。");
   }
 
-  if (post.authorUserId !== currentUser.id) {
+  if (post.authorUserId !== input.actingUser.id) {
     throw new AppError("FORBIDDEN", "自分の投稿だけ編集できます。");
   }
 
@@ -76,17 +81,46 @@ export async function updatePost(formData: FormData) {
     forumId,
     postId: post.id,
     channelId,
-    actorUserId: currentUser.id,
-    actorDisplayName: currentUser.displayName,
+    actorUserId: input.actingUser.id,
+    actorDisplayName: input.actingUser.displayName,
     bodyMarkdown,
   });
 
-  publishNotificationRefresh(notifiedUserIds);
-  publishPostActivity(postId);
-  publishChannelActivity(channelId);
+  return {
+    forumId,
+    channelId,
+    postId,
+    notifiedUserIds,
+  };
+}
 
-  revalidatePath(`/forums/${forumId}/channels/${channelId}`);
-  revalidatePath(`/forums/${forumId}/channels/${channelId}/posts/${postId}`);
+export async function updatePost(formData: FormData) {
+  "use server";
+
+  const currentUser = await requireCurrentUser();
+  const files = formData
+    .getAll("attachments")
+    .filter((value): value is File => value instanceof File && value.size > 0);
+
+  const result = await updatePostRecord({
+    forumId: String(formData.get("forumId") ?? ""),
+    channelId: String(formData.get("channelId") ?? ""),
+    postId: String(formData.get("postId") ?? ""),
+    title: String(formData.get("title") ?? ""),
+    bodyMarkdown: String(formData.get("bodyMarkdown") ?? ""),
+    actingUser: {
+      id: currentUser.id,
+      displayName: currentUser.displayName,
+    },
+    files,
+  });
+
+  publishNotificationRefresh(result.notifiedUserIds);
+  publishPostActivity(result.postId);
+  publishChannelActivity(result.channelId);
+
+  revalidatePath(`/forums/${result.forumId}/channels/${result.channelId}`);
+  revalidatePath(`/forums/${result.forumId}/channels/${result.channelId}/posts/${result.postId}`);
 }
 
 export async function updatePostAction(
