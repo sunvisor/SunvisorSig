@@ -1,0 +1,16 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    env_file:
+      - .env.production
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+    volumes:
+      - uploads_data:/app/public/uploads
+
+volumes:
+  uploads_data:
+
