@@ -1,41 +1,95 @@
-import { access, mkdir, readdir, rm, writeFile } from "node:fs/promises";
-import path, { dirname } from "node:path";
+import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { buildDedupedFilename } from "@/lib/attachment-filename";
 
-const uploadsRoot = path.join(process.cwd(), "public", "uploads");
+const ATTACHMENT_STORAGE_PREFIX = "/attachments";
 
-async function exists(pathname: string) {
-  try {
-    await access(pathname);
-    return true;
-  } catch {
-    return false;
+export type AttachmentBucket = Pick<R2Bucket, "delete" | "get" | "head" | "put">;
+
+function getAttachmentBucket(bucket?: AttachmentBucket) {
+  if (bucket) {
+    return bucket;
   }
+
+  const { env } = getCloudflareContext();
+
+  if (!env.ATTACHMENTS) {
+    throw new Error("ATTACHMENTS R2 bucket binding is not configured.");
+  }
+
+  return env.ATTACHMENTS;
 }
 
-async function removeEmptyParents(startDirectory: string) {
-  let current = startDirectory;
-
-  while (current.startsWith(uploadsRoot) && current !== uploadsRoot) {
-    const children = await readdir(current).catch(() => null);
-
-    if (!children || children.length > 0) {
-      return;
-    }
-
-    await rm(current, { recursive: false, force: true }).catch(() => {});
-    current = dirname(current);
-  }
+function buildAttachmentKey(ownerType: "comments" | "posts", ownerId: string, filename: string) {
+  return `${ownerType}/${ownerId}/${filename}`;
 }
 
-function toPublicFilePath(storagePath: string) {
-  return path.join(process.cwd(), "public", storagePath.replace(/^\/+/, ""));
+export function getAttachmentKey(storagePath: string) {
+  const normalizedPath = storagePath.replace(/^\/+/, "");
+
+  if (normalizedPath.startsWith("attachments/")) {
+    return normalizedPath.slice("attachments/".length);
+  }
+
+  if (normalizedPath.startsWith("uploads/")) {
+    return normalizedPath.slice("uploads/".length);
+  }
+
+  return normalizedPath;
+}
+
+export function getAttachmentStoragePath(key: string) {
+  return `${ATTACHMENT_STORAGE_PREFIX}/${key.replace(/^\/+/, "")}`;
+}
+
+export function getAttachmentStorageRoot() {
+  return "r2://ATTACHMENTS";
+}
+
+async function saveAttachments(input: {
+  ownerType: "comments" | "posts";
+  ownerId: string;
+  files: File[];
+  existingNames?: Iterable<string>;
+  bucket?: AttachmentBucket;
+  createAttachment: (data: {
+    storagePath: string;
+    originalFilename: string;
+    mimeType: string;
+    sizeBytes: number;
+  }) => Promise<void>;
+}) {
+  if (input.files.length === 0) {
+    return;
+  }
+
+  const bucket = getAttachmentBucket(input.bucket);
+  const usedNames = new Set(input.existingNames ?? []);
+
+  for (const file of input.files) {
+    const originalFilename = buildDedupedFilename(file.name, usedNames);
+    const key = buildAttachmentKey(input.ownerType, input.ownerId, originalFilename);
+    const body = await file.arrayBuffer();
+    const mimeType = file.type || "application/octet-stream";
+
+    await bucket.put(key, body, {
+      httpMetadata: {
+        contentType: mimeType,
+      },
+    });
+    await input.createAttachment({
+      storagePath: getAttachmentStoragePath(key),
+      originalFilename,
+      mimeType,
+      sizeBytes: body.byteLength,
+    });
+  }
 }
 
 export async function savePostAttachments(input: {
   postId: string;
   files: File[];
   existingNames?: Iterable<string>;
+  bucket?: AttachmentBucket;
   createAttachment: (data: {
     storagePath: string;
     originalFilename: string;
@@ -43,33 +97,21 @@ export async function savePostAttachments(input: {
     sizeBytes: number;
   }) => Promise<void>;
 }) {
-  if (input.files.length === 0) {
-    return;
-  }
-
-  const uploadDir = path.join(process.cwd(), "public", "uploads", "posts", input.postId);
-  await mkdir(uploadDir, { recursive: true });
-  const usedNames = new Set(input.existingNames ?? []);
-
-  for (const file of input.files) {
-    const originalFilename = buildDedupedFilename(file.name, usedNames);
-    const storagePath = `/uploads/posts/${input.postId}/${originalFilename}`;
-    const buffer = Buffer.from(await file.arrayBuffer());
-
-    await writeFile(path.join(uploadDir, originalFilename), buffer);
-    await input.createAttachment({
-      storagePath,
-      originalFilename,
-      mimeType: file.type || "application/octet-stream",
-      sizeBytes: buffer.byteLength,
-    });
-  }
+  await saveAttachments({
+    ownerType: "posts",
+    ownerId: input.postId,
+    files: input.files,
+    existingNames: input.existingNames,
+    bucket: input.bucket,
+    createAttachment: input.createAttachment,
+  });
 }
 
 export async function saveCommentAttachments(input: {
   commentId: string;
   files: File[];
   existingNames?: Iterable<string>;
+  bucket?: AttachmentBucket;
   createAttachment: (data: {
     storagePath: string;
     originalFilename: string;
@@ -77,36 +119,29 @@ export async function saveCommentAttachments(input: {
     sizeBytes: number;
   }) => Promise<void>;
 }) {
-  if (input.files.length === 0) {
-    return;
-  }
-
-  const uploadDir = path.join(process.cwd(), "public", "uploads", "comments", input.commentId);
-  await mkdir(uploadDir, { recursive: true });
-  const usedNames = new Set(input.existingNames ?? []);
-
-  for (const file of input.files) {
-    const originalFilename = buildDedupedFilename(file.name, usedNames);
-    const storagePath = `/uploads/comments/${input.commentId}/${originalFilename}`;
-    const buffer = Buffer.from(await file.arrayBuffer());
-
-    await writeFile(path.join(uploadDir, originalFilename), buffer);
-    await input.createAttachment({
-      storagePath,
-      originalFilename,
-      mimeType: file.type || "application/octet-stream",
-      sizeBytes: buffer.byteLength,
-    });
-  }
+  await saveAttachments({
+    ownerType: "comments",
+    ownerId: input.commentId,
+    files: input.files,
+    existingNames: input.existingNames,
+    bucket: input.bucket,
+    createAttachment: input.createAttachment,
+  });
 }
 
-export async function deleteStoredAttachment(storagePath: string) {
-  const absolutePath = toPublicFilePath(storagePath);
+export async function getStoredAttachment(storagePath: string, bucket?: AttachmentBucket) {
+  return getAttachmentBucket(bucket).get(getAttachmentKey(storagePath));
+}
 
-  if (!(await exists(absolutePath))) {
-    return;
+export async function deleteStoredAttachment(storagePath: string, bucket?: AttachmentBucket) {
+  const attachmentBucket = getAttachmentBucket(bucket);
+  const key = getAttachmentKey(storagePath);
+  const existingObject = await attachmentBucket.head(key);
+
+  if (!existingObject) {
+    return false;
   }
 
-  await rm(absolutePath, { force: true });
-  await removeEmptyParents(dirname(absolutePath));
+  await attachmentBucket.delete(key);
+  return true;
 }

@@ -22,6 +22,7 @@ async function createPrismaClient() {
         prisma: new PrismaClient({
           adapter: new PrismaD1(platform.env.DB),
         }),
+        bucket: platform.env.ATTACHMENTS,
         dispose: platform.dispose,
       };
     }
@@ -33,11 +34,12 @@ async function createPrismaClient() {
     prisma: new PrismaClient({
       datasourceUrl: getLocalDatabaseUrl(),
     }),
+    bucket: undefined,
     dispose: async () => {},
   };
 }
 
-const { prisma, dispose } = await createPrismaClient();
+const { prisma, bucket, dispose } = await createPrismaClient();
 const SCRYPT_KEY_LENGTH = 64;
 
 function hashPassword(password) {
@@ -45,6 +47,18 @@ function hashPassword(password) {
   const hash = scryptSync(password, salt, SCRYPT_KEY_LENGTH).toString("hex");
 
   return `${salt}:${hash}`;
+}
+
+async function putSeedAttachment(key, body, mimeType) {
+  if (!bucket) {
+    return;
+  }
+
+  await bucket.put(key, body, {
+    httpMetadata: {
+      contentType: mimeType,
+    },
+  });
 }
 
 async function main() {
@@ -211,12 +225,17 @@ async function main() {
   await prisma.postAttachment.create({
     data: {
       postId: welcomePost.id,
-      storagePath: "uploads/posts/guide.pdf",
+      storagePath: "/attachments/posts/seed/guide.pdf",
       originalFilename: "guide.pdf",
       mimeType: "application/pdf",
       sizeBytes: 245760,
     },
   });
+  await putSeedAttachment(
+    "posts/seed/guide.pdf",
+    "SunvisorSig seed guide",
+    "application/pdf",
+  );
 
   const questionPost = await prisma.post.create({
     data: {
@@ -232,12 +251,17 @@ async function main() {
   await prisma.postAttachment.create({
     data: {
       postId: questionPost.id,
-      storagePath: "uploads/posts/setup.png",
+      storagePath: "/attachments/posts/seed/setup.png",
       originalFilename: "setup.png",
       mimeType: "image/png",
       sizeBytes: 98304,
     },
   });
+  await putSeedAttachment(
+    "posts/seed/setup.png",
+    "SunvisorSig seed setup image",
+    "image/png",
+  );
 
   const adminComment = await prisma.comment.create({
     data: {
@@ -251,13 +275,18 @@ async function main() {
   await prisma.commentAttachment.create({
     data: {
       commentId: adminComment.id,
-      storagePath: "uploads/comments/checklist.xlsx",
+      storagePath: "/attachments/comments/seed/checklist.xlsx",
       originalFilename: "checklist.xlsx",
       mimeType:
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       sizeBytes: 40960,
     },
   });
+  await putSeedAttachment(
+    "comments/seed/checklist.xlsx",
+    "SunvisorSig seed checklist",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  );
 
   await prisma.comment.create({
     data: {

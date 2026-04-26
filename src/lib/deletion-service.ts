@@ -1,11 +1,13 @@
-import { access, readdir, rm } from "node:fs/promises";
-import { dirname, join, relative } from "node:path";
 import { AppError } from "@/lib/app-error";
+import {
+  deleteStoredAttachment,
+  getAttachmentStorageRoot,
+  type AttachmentBucket,
+} from "@/lib/attachment-storage";
 import { prisma } from "@/lib/prisma";
 import type { PrismaClient } from "@prisma/client";
 
 const RETENTION_DAYS = 30;
-const uploadsRoot = join(process.cwd(), "public", "uploads");
 
 type DeleteCommentInput = {
   forumId: string;
@@ -32,34 +34,6 @@ type DeleteForumInput = {
   forumId: string;
   actingUserId: string;
 };
-
-async function exists(pathname: string) {
-  try {
-    await access(pathname);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-function toPublicFilePath(storagePath: string) {
-  return join(process.cwd(), "public", storagePath.replace(/^\/+/, ""));
-}
-
-async function removeEmptyParents(startDirectory: string) {
-  let current = startDirectory;
-
-  while (current.startsWith(uploadsRoot) && current !== uploadsRoot) {
-    const children = await readdir(current).catch(() => null);
-
-    if (!children || children.length > 0) {
-      return;
-    }
-
-    await rm(current, { recursive: false, force: true }).catch(() => {});
-    current = dirname(current);
-  }
-}
 
 function buildRetentionWindow() {
   const deletedAt = new Date();
@@ -349,6 +323,7 @@ export async function deleteForumById({
 export async function purgeExpiredDeletedData(
   now = new Date(),
   client: PrismaClient = prisma,
+  bucket?: AttachmentBucket,
 ) {
   const expiredAttachments = await client.deletedAttachment.findMany({
     where: {
@@ -361,12 +336,8 @@ export async function purgeExpiredDeletedData(
   let deletedFiles = 0;
 
   for (const attachment of expiredAttachments) {
-    const filePath = toPublicFilePath(attachment.storagePath);
-
-    if (await exists(filePath)) {
-      await rm(filePath, { force: true });
+    if (await deleteStoredAttachment(attachment.storagePath, bucket)) {
       deletedFiles += 1;
-      await removeEmptyParents(dirname(filePath));
     }
   }
 
@@ -397,7 +368,7 @@ export async function purgeExpiredDeletedData(
 
   return {
     executedAt: now.toISOString(),
-    uploadsRoot: relative(process.cwd(), uploadsRoot),
+    storageRoot: getAttachmentStorageRoot(),
     deletedAttachmentRecords: deletedAttachmentRecords.count,
     deletedFiles,
     deletedComments: deletedComments.count,

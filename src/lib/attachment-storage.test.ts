@@ -1,43 +1,92 @@
-import { access, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
-import path from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import {
   deleteStoredAttachment,
+  getAttachmentKey,
+  getStoredAttachment,
   saveCommentAttachments,
   savePostAttachments,
 } from "@/lib/attachment-storage";
 
-const createdPaths = new Set<string>();
+type StoredObject = {
+  body: ArrayBuffer;
+  contentType: string;
+};
 
-function trackPath(pathname: string) {
-  createdPaths.add(pathname);
-  return pathname;
+function createMemoryBucket() {
+  const objects = new Map<string, StoredObject>();
+
+  return {
+    bucket: {
+      async put(key: string, value: ArrayBuffer | ArrayBufferView | string, options?: R2PutOptions) {
+        const contentType =
+          options?.httpMetadata instanceof Headers
+            ? (options.httpMetadata.get("Content-Type") ?? "application/octet-stream")
+            : (options?.httpMetadata?.contentType ?? "application/octet-stream");
+        const body =
+          typeof value === "string"
+            ? new TextEncoder().encode(value).buffer
+            : value instanceof ArrayBuffer
+              ? value
+              : new Uint8Array(value.buffer, value.byteOffset, value.byteLength).slice().buffer;
+
+        objects.set(key, {
+          body,
+          contentType,
+        });
+
+        return null as unknown as R2Object;
+      },
+      async get(key: string) {
+        const object = objects.get(key);
+
+        if (!object) {
+          return null;
+        }
+
+        return {
+          body: new Response(object.body).body,
+          httpMetadata: {
+            contentType: object.contentType,
+          },
+          size: object.body.byteLength,
+        } as R2ObjectBody;
+      },
+      async head(key: string) {
+        const object = objects.get(key);
+
+        if (!object) {
+          return null;
+        }
+
+        return {
+          size: object.body.byteLength,
+        } as R2Object;
+      },
+      async delete(key: string) {
+        objects.delete(key);
+      },
+    } satisfies Pick<R2Bucket, "delete" | "get" | "head" | "put">,
+    objects,
+  };
 }
 
-async function exists(pathname: string) {
-  try {
-    await access(pathname);
-    return true;
-  } catch {
-    return false;
+async function readObjectText(object: R2ObjectBody | null) {
+  if (!object) {
+    return null;
   }
-}
 
-afterEach(async () => {
-  for (const pathname of createdPaths) {
-    await rm(pathname, { recursive: true, force: true }).catch(() => {});
-  }
-  createdPaths.clear();
-});
+  return new Response(object.body).text();
+}
 
 describe("attachment storage helpers", () => {
-  it("dedupes post attachment names when the same filename already exists", async () => {
+  it("dedupes post attachment names and stores objects in R2", async () => {
+    const { bucket } = createMemoryBucket();
     const postId = `test-post-${Date.now()}`;
-    const uploadDir = trackPath(path.join(process.cwd(), "public", "uploads", "posts", postId));
     const created: Array<{ storagePath: string; originalFilename: string }> = [];
 
     await savePostAttachments({
       postId,
+      bucket,
       files: [
         new File(["alpha"], "report.pdf", { type: "application/pdf" }),
         new File(["beta"], "report.pdf", { type: "application/pdf" }),
@@ -51,48 +100,64 @@ describe("attachment storage helpers", () => {
       },
     });
 
-    expect(created.map((item) => item.originalFilename)).toEqual([
-      "report(2).pdf",
-      "report(3).pdf",
+    expect(created).toEqual([
+      {
+        storagePath: `/attachments/posts/${postId}/report(2).pdf`,
+        originalFilename: "report(2).pdf",
+      },
+      {
+        storagePath: `/attachments/posts/${postId}/report(3).pdf`,
+        originalFilename: "report(3).pdf",
+      },
     ]);
 
-    expect(await readFile(path.join(uploadDir, "report(2).pdf"), "utf8")).toBe("alpha");
-    expect(await readFile(path.join(uploadDir, "report(3).pdf"), "utf8")).toBe("beta");
+    await expect(
+      readObjectText(await getStoredAttachment(created[0].storagePath, bucket)),
+    ).resolves.toBe("alpha");
+    await expect(
+      readObjectText(await getStoredAttachment(created[1].storagePath, bucket)),
+    ).resolves.toBe("beta");
   });
 
-  it("stores comment attachments under the comment upload directory", async () => {
+  it("stores comment attachments under the comment key prefix", async () => {
+    const { bucket } = createMemoryBucket();
     const commentId = `test-comment-${Date.now()}`;
-    const uploadDir = trackPath(
-      path.join(process.cwd(), "public", "uploads", "comments", commentId),
-    );
     const created: string[] = [];
 
     await saveCommentAttachments({
       commentId,
+      bucket,
       files: [new File(["image-bytes"], "capture.png", { type: "image/png" })],
       createAttachment: async (attachment) => {
         created.push(attachment.storagePath);
       },
     });
 
-    expect(created).toEqual([`/uploads/comments/${commentId}/capture.png`]);
-    expect(await readFile(path.join(uploadDir, "capture.png"), "utf8")).toBe("image-bytes");
+    expect(created).toEqual([`/attachments/comments/${commentId}/capture.png`]);
+    await expect(
+      readObjectText(await getStoredAttachment(created[0], bucket)),
+    ).resolves.toBe("image-bytes");
   });
 
-  it("removes the attachment file and cleans up empty parent directories", async () => {
+  it("removes an attachment object from R2", async () => {
+    const { bucket } = createMemoryBucket();
     const postId = `delete-post-${Date.now()}`;
-    const uploadDir = trackPath(path.join(process.cwd(), "public", "uploads", "posts", postId));
-    const nestedDir = path.join(uploadDir);
-    const filePath = path.join(nestedDir, "guide.pdf");
+    const storagePath = `/attachments/posts/${postId}/guide.pdf`;
 
-    await mkdir(nestedDir, { recursive: true });
-    await writeFile(filePath, "payload");
+    await bucket.put(getAttachmentKey(storagePath), "payload");
 
-    await deleteStoredAttachment(`/uploads/posts/${postId}/guide.pdf`);
+    await expect(deleteStoredAttachment(storagePath, bucket)).resolves.toBe(true);
+    await expect(getStoredAttachment(storagePath, bucket)).resolves.toBeNull();
+  });
 
-    expect(await exists(filePath)).toBe(false);
-    expect(
-      !(await exists(uploadDir)) || (await readdir(uploadDir)).length === 0,
-    ).toBe(true);
+  it("understands legacy upload paths when deleting", async () => {
+    const { bucket } = createMemoryBucket();
+    const postId = `legacy-post-${Date.now()}`;
+
+    await bucket.put(`posts/${postId}/guide.pdf`, "payload");
+
+    await expect(
+      deleteStoredAttachment(`/uploads/posts/${postId}/guide.pdf`, bucket),
+    ).resolves.toBe(true);
   });
 });

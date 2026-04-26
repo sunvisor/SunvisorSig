@@ -3,6 +3,7 @@ import { PrismaClient } from "@prisma/client";
 import { PrismaD1 } from "@prisma/adapter-d1";
 
 type SeedPlatformEnv = {
+  ATTACHMENTS?: R2Bucket;
   DB?: D1Database;
 };
 
@@ -26,6 +27,7 @@ async function createPrismaClient() {
         prisma: new PrismaClient({
           adapter: new PrismaD1(platform.env.DB),
         }),
+        bucket: platform.env.ATTACHMENTS,
         dispose: platform.dispose,
       };
     }
@@ -37,13 +39,14 @@ async function createPrismaClient() {
     prisma: new PrismaClient({
       datasourceUrl: getLocalDatabaseUrl(),
     }),
+    bucket: undefined,
     dispose: async () => {},
   };
 }
 
 async function main() {
-  const { prisma, dispose } = await createPrismaClient();
-  const result = await purgeExpiredDeletedData(new Date(), prisma);
+  const { prisma, bucket, dispose } = await createPrismaClient();
+  const result = await purgeExpiredDeletedData(new Date(), prisma, bucket);
   console.log(JSON.stringify(result, null, 2));
 
   await prisma.$disconnect();
