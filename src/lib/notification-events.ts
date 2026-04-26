@@ -1,13 +1,10 @@
-import { EventEmitter } from "node:events";
-
 const globalForNotifications = globalThis as typeof globalThis & {
-  notificationEventBus?: EventEmitter;
+  notificationEventBus?: EventTarget;
 };
 
 const notificationEventBus =
-  globalForNotifications.notificationEventBus ?? new EventEmitter();
+  globalForNotifications.notificationEventBus ?? new EventTarget();
 
-notificationEventBus.setMaxListeners(100);
 globalForNotifications.notificationEventBus = notificationEventBus;
 
 function getNotificationChannelName(userId: string) {
@@ -22,11 +19,23 @@ function getChannelActivityChannelName(channelId: string) {
   return `channel-activity:${channelId}`;
 }
 
+function publish(channelName: string) {
+  notificationEventBus.dispatchEvent(new Event(channelName));
+}
+
+function subscribe(channelName: string, listener: () => void) {
+  notificationEventBus.addEventListener(channelName, listener);
+
+  return () => {
+    notificationEventBus.removeEventListener(channelName, listener);
+  };
+}
+
 export function publishNotificationRefresh(userIds: Iterable<string>) {
   const uniqueUserIds = new Set(userIds);
 
   for (const userId of uniqueUserIds) {
-    notificationEventBus.emit(getNotificationChannelName(userId));
+    publish(getNotificationChannelName(userId));
   }
 }
 
@@ -34,39 +43,24 @@ export function subscribeToNotificationRefresh(
   userId: string,
   listener: () => void,
 ) {
-  const channelName = getNotificationChannelName(userId);
-  notificationEventBus.on(channelName, listener);
-
-  return () => {
-    notificationEventBus.off(channelName, listener);
-  };
+  return subscribe(getNotificationChannelName(userId), listener);
 }
 
 export function publishPostActivity(postId: string) {
-  notificationEventBus.emit(getPostActivityChannelName(postId));
+  publish(getPostActivityChannelName(postId));
 }
 
 export function subscribeToPostActivity(postId: string, listener: () => void) {
-  const channelName = getPostActivityChannelName(postId);
-  notificationEventBus.on(channelName, listener);
-
-  return () => {
-    notificationEventBus.off(channelName, listener);
-  };
+  return subscribe(getPostActivityChannelName(postId), listener);
 }
 
 export function publishChannelActivity(channelId: string) {
-  notificationEventBus.emit(getChannelActivityChannelName(channelId));
+  publish(getChannelActivityChannelName(channelId));
 }
 
 export function subscribeToChannelActivity(
   channelId: string,
   listener: () => void,
 ) {
-  const channelName = getChannelActivityChannelName(channelId);
-  notificationEventBus.on(channelName, listener);
-
-  return () => {
-    notificationEventBus.off(channelName, listener);
-  };
+  return subscribe(getChannelActivityChannelName(channelId), listener);
 }

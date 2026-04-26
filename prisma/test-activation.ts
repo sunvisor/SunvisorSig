@@ -155,7 +155,7 @@ async function main() {
     assert(activatedUser, "activated user should be created");
     assert(activatedUser.status === "ACTIVE", "activated user should be active");
     assert(activatedUser.passwordHash, "activated user should have password hash");
-    assert(verifyPassword("password123", activatedUser.passwordHash), "password should verify");
+    assert(await verifyPassword("password123", activatedUser.passwordHash), "password should verify");
 
     const membership = await prisma.forumMember.findUnique({
       where: {

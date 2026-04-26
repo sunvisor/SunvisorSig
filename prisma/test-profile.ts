@@ -47,7 +47,7 @@ async function main() {
         displayName: `Profile User ${suffix}`,
         email: `profile-user-${suffix}@example.com`,
         mentionHandle: `profile-user-${suffix}`,
-        passwordHash: hashPassword("password123"),
+        passwordHash: await hashPassword("password123"),
         status: UserStatus.ACTIVE,
       },
     });
@@ -78,7 +78,7 @@ async function main() {
     assert(updatedUser.displayName === "Updated Name", "display name should update");
     assert(updatedUser.mentionHandle === "updated-handle", "mention handle should update");
     assert(updatedUser.passwordHash, "password hash should exist");
-    assert(verifyPassword("newpassword123", updatedUser.passwordHash), "password should update");
+    assert(await verifyPassword("newpassword123", updatedUser.passwordHash), "password should update");
 
     await updateProfileRecord({
       userId: user.id,

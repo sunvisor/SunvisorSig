@@ -20,7 +20,7 @@
 
 - `AUTH_SECRET` を十分に長いランダム文字列へ変更する
 - `APP_URL` を本番 URL に変更する
-- 招待メールを使う場合は `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM` を設定する
+- 招待メールを使う場合は `EMAIL_API_URL`, `EMAIL_API_TOKEN`, `EMAIL_FROM` を設定する
 - webhook を使う場合は、各フォーラムごとに正しい webhook URL を登録する
 
 ### 初期データ
@@ -73,5 +73,5 @@
 - 本番用環境変数の設定
 - seed データの非投入確認
 - purge バッチの運用設定
-- webhook / SMTP の運用手順確認
+- webhook / メール API の運用手順確認
 - バックアップ方針の決定

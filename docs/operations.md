@@ -64,8 +64,8 @@ docker compose -f docker-compose.prod.yml run --rm app npm run db:purge
 ### 招待メール
 
 - フォーラム設定画面で招待を作成する
-- SMTP 設定済みなら受信確認を行う
-- SMTP 未設定なら招待一覧のメール文面 preview を使う
+- メール API 設定済みなら受信確認を行う
+- メール API 未設定なら招待一覧のメール文面 preview を使う
 
 ### Webhook
 
@@ -92,4 +92,3 @@ docker compose -f docker-compose.prod.yml run --rm app npm run db:purge
 - 単一プロセスで app が動いているか確認する
 - webhook は設定画面からテスト送信する
 - SSE は app 再起動直後に一時的に切れることがある
-

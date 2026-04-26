@@ -87,7 +87,7 @@ export async function updateProfileRecord(input: {
       mentionHandle,
       ...(nextPassword
         ? {
-            passwordHash: hashPassword(nextPassword),
+            passwordHash: await hashPassword(nextPassword),
           }
         : {}),
     },

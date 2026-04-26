@@ -15,13 +15,7 @@ npm install
 
 ### ローカルで起動する場合
 
-1. PostgreSQL を起動します。
-
-```bash
-docker compose up -d db
-```
-
-2. Prisma Client を生成し、migration を適用します。
+1. Prisma Client を生成し、migration を適用します。
 
 ```bash
 npm run db:generate
@@ -34,14 +28,14 @@ npm run db:migrate
 npm run db:seed
 ```
 
-3. 開発サーバーを起動します。
+2. 開発サーバーを起動します。
 
 ```bash
 npm run dev
 ```
 
-4. ブラウザで `http://localhost:3000/forums` を開きます。
-5. フォーラム一覧が表示されれば起動完了です。
+3. ブラウザで `http://localhost:3000/forums` を開きます。
+4. フォーラム一覧が表示されれば起動完了です。
 
 補足:
 `next dev` / `next build` は Next.js の既定どおり Turbopack を使用します。
@@ -67,8 +61,8 @@ npm run db:migrate
 
 招待メール送信:
 
-- `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM` を設定すると SMTP で招待メールを送信します
-- SMTP 未設定の場合は開発用として招待は作成され、Activation URL はサーバーログへ出力されます
+- `EMAIL_API_URL`, `EMAIL_API_TOKEN`, `EMAIL_FROM` を設定すると HTTP メール API で招待メールを送信します
+- メール API 未設定の場合は開発用として招待は作成され、Activation URL はサーバーログへ出力されます
 
 ### Docker で起動する場合
 

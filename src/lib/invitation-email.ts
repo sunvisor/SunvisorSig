@@ -1,15 +1,21 @@
-import nodemailer from "nodemailer";
 import { getAppUrl } from "@/lib/app-url";
+
+type EmailApiPayload = {
+  from: string;
+  to: string;
+  subject: string;
+  text: string;
+};
 
 export function getActivationUrl(token: string) {
   return `${getAppUrl()}/activate?token=${token}`;
 }
 
-export function hasSmtpConfig() {
+export function hasEmailApiConfig() {
   return Boolean(
-    process.env.SMTP_HOST &&
-      process.env.SMTP_PORT &&
-      process.env.SMTP_FROM,
+    process.env.EMAIL_API_URL &&
+      process.env.EMAIL_API_TOKEN &&
+      process.env.EMAIL_FROM,
   );
 }
 
@@ -38,6 +44,21 @@ export function buildInvitationEmail(input: {
   };
 }
 
+async function sendEmailApiRequest(payload: EmailApiPayload) {
+  const response = await fetch(process.env.EMAIL_API_URL!, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${process.env.EMAIL_API_TOKEN}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Email API request failed with status ${response.status}.`);
+  }
+}
+
 export async function sendInvitationEmail(input: {
   forumName: string;
   recipientEmail: string;
@@ -46,7 +67,7 @@ export async function sendInvitationEmail(input: {
 }) {
   const email = buildInvitationEmail(input);
 
-  if (!hasSmtpConfig()) {
+  if (!hasEmailApiConfig()) {
     console.log(
       [
         "[invitation-email]",
@@ -63,28 +84,15 @@ export async function sendInvitationEmail(input: {
     };
   }
 
-  const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: Number(process.env.SMTP_PORT),
-    secure: process.env.SMTP_SECURE === "true",
-    auth:
-      process.env.SMTP_USER && process.env.SMTP_PASSWORD
-        ? {
-            user: process.env.SMTP_USER,
-            pass: process.env.SMTP_PASSWORD,
-          }
-        : undefined,
-  });
-
-  await transporter.sendMail({
-    from: process.env.SMTP_FROM,
+  await sendEmailApiRequest({
+    from: process.env.EMAIL_FROM!,
     to: input.recipientEmail,
     subject: email.subject,
     text: email.text,
   });
 
   return {
-    deliveryMode: "smtp" as const,
+    deliveryMode: "email-api" as const,
     activationUrl: email.activationUrl,
   };
 }

@@ -1,6 +1,8 @@
-import { randomBytes, scryptSync } from "node:crypto";
 import { PrismaClient, SystemRole, UserStatus } from "@prisma/client";
 import { PrismaD1 } from "@prisma/adapter-d1";
+
+const PBKDF2_ITERATIONS = 210_000;
+const PBKDF2_KEY_LENGTH_BITS = 256;
 
 function getLocalDatabaseUrl() {
   const databaseUrl = process.env.DATABASE_URL;
@@ -40,13 +42,38 @@ async function createPrismaClient() {
 }
 
 const { prisma, bucket, dispose } = await createPrismaClient();
-const SCRYPT_KEY_LENGTH = 64;
 
-function hashPassword(password) {
-  const salt = randomBytes(16).toString("hex");
-  const hash = scryptSync(password, salt, SCRYPT_KEY_LENGTH).toString("hex");
+function bytesToHex(bytes) {
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
 
-  return `${salt}:${hash}`;
+async function derivePasswordHash(password, salt) {
+  const keyMaterial = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(password),
+    "PBKDF2",
+    false,
+    ["deriveBits"],
+  );
+  const bits = await crypto.subtle.deriveBits(
+    {
+      name: "PBKDF2",
+      hash: "SHA-256",
+      salt,
+      iterations: PBKDF2_ITERATIONS,
+    },
+    keyMaterial,
+    PBKDF2_KEY_LENGTH_BITS,
+  );
+
+  return new Uint8Array(bits);
+}
+
+async function hashPassword(password) {
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const hash = await derivePasswordHash(password, salt);
+
+  return `pbkdf2-sha256:${PBKDF2_ITERATIONS}:${bytesToHex(salt)}:${bytesToHex(hash)}`;
 }
 
 async function putSeedAttachment(key, body, mimeType) {
@@ -74,13 +101,19 @@ async function main() {
   await prisma.forum.deleteMany();
   await prisma.user.deleteMany();
 
+  const [adminPasswordHash, customerAPasswordHash, customerBPasswordHash] = await Promise.all([
+    hashPassword("password123"),
+    hashPassword("password123"),
+    hashPassword("password123"),
+  ]);
+
   const [admin, customerA, customerB] = await Promise.all([
     prisma.user.create({
       data: {
         displayName: "Sunvisor Admin",
         email: "admin@example.com",
         mentionHandle: "admin",
-        passwordHash: hashPassword("password123"),
+        passwordHash: adminPasswordHash,
         systemRole: SystemRole.ADMIN,
         status: UserStatus.ACTIVE,
       },
@@ -90,7 +123,7 @@ async function main() {
         displayName: "Acme Customer",
         email: "acme@example.com",
         mentionHandle: "acme",
-        passwordHash: hashPassword("password123"),
+        passwordHash: customerAPasswordHash,
         systemRole: SystemRole.USER,
         status: UserStatus.ACTIVE,
       },
@@ -100,7 +133,7 @@ async function main() {
         displayName: "Globex Customer",
         email: "globex@example.com",
         mentionHandle: "globex",
-        passwordHash: hashPassword("password123"),
+        passwordHash: customerBPasswordHash,
         systemRole: SystemRole.USER,
         status: UserStatus.ACTIVE,
       },

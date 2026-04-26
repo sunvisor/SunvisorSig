@@ -57,7 +57,7 @@ describe("authenticateUser", () => {
       passwordHash: "hash",
       status: "ACTIVE",
     });
-    mockVerifyPassword.mockReturnValue(false);
+    mockVerifyPassword.mockResolvedValue(false);
     const { authenticateUser } = await import("@/lib/auth");
 
     await expect(authenticateUser("user@example.com", "wrong")).rejects.toMatchObject({
@@ -73,7 +73,7 @@ describe("authenticateUser", () => {
       status: "ACTIVE",
     };
     mockFindUnique.mockResolvedValue(user);
-    mockVerifyPassword.mockReturnValue(true);
+    mockVerifyPassword.mockResolvedValue(true);
     const { authenticateUser } = await import("@/lib/auth");
 
     await expect(authenticateUser("USER@example.com ", "password123")).resolves.toEqual(user);

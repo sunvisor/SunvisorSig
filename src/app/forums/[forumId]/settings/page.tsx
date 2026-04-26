@@ -14,7 +14,7 @@ import { WebhookEndpointRow } from "@/components/webhook-endpoint-row";
 import { getActiveUsers, getForum } from "@/lib/forum-data";
 import { getCurrentUser, isSystemAdmin } from "@/lib/auth";
 import { getForumHeroStyle, getForumPageStyle } from "@/lib/forum-theme";
-import { buildInvitationEmail, hasSmtpConfig } from "@/lib/invitation-email";
+import { buildInvitationEmail, hasEmailApiConfig } from "@/lib/invitation-email";
 import {
   addForumMemberAction,
   createInvitationAction,
@@ -68,7 +68,7 @@ export default async function ForumSettingsPage({ params }: ForumSettingsPagePro
     (user) => !forum.members.some((member) => member.userId === user.id),
   );
   const appUrl = process.env.APP_URL?.replace(/\/$/, "") ?? "http://localhost:3000";
-  const smtpConfigured = hasSmtpConfig();
+  const emailApiConfigured = hasEmailApiConfig();
 
   return (
     <ForumShell
@@ -205,7 +205,7 @@ export default async function ForumSettingsPage({ params }: ForumSettingsPagePro
                         {activationUrl}
                       </p>
                     </div>
-                    {!smtpConfigured ? (
+                    {!emailApiConfigured ? (
                       <div className="flex justify-start">
                         <InvitationEmailPreviewButton
                           recipientEmail={invitation.email}

@@ -37,7 +37,7 @@ async function setSessionCookie(userId: string) {
 
   cookieStore.set(
     SESSION_COOKIE_NAME,
-    encodeSessionToken({ userId, expiresAt }, getAuthSecret()),
+    await encodeSessionToken({ userId, expiresAt }, getAuthSecret()),
     {
     httpOnly: true,
     sameSite: "lax",
@@ -62,7 +62,7 @@ export async function getCurrentUser() {
     return null;
   }
 
-  const payload = decodeSessionToken(sessionCookie, getAuthSecret());
+  const payload = await decodeSessionToken(sessionCookie, getAuthSecret());
 
   if (!payload || payload.expiresAt <= Date.now()) {
     return null;
@@ -133,7 +133,7 @@ export async function authenticateUser(email: string, password: string) {
     throw new AppError("INVITATION_NOT_FOUND", "メールアドレスまたはパスワードが正しくありません。");
   }
 
-  if (!verifyPassword(password, user.passwordHash)) {
+  if (!(await verifyPassword(password, user.passwordHash))) {
     throw new AppError("INVITATION_NOT_FOUND", "メールアドレスまたはパスワードが正しくありません。");
   }
 

@@ -105,6 +105,7 @@ export async function activateInvitationRecord(input: {
   const mentionHandle = await buildUniqueMentionHandle(
     invitation.email.split("@")[0] ?? displayName,
   );
+  const passwordHash = await hashPassword(password);
 
   await prisma.$transaction(async (tx) => {
     const user = await tx.user.create({
@@ -112,7 +113,7 @@ export async function activateInvitationRecord(input: {
         displayName,
         email: invitation.email,
         mentionHandle,
-        passwordHash: hashPassword(password),
+        passwordHash,
         status: "ACTIVE",
       },
     });

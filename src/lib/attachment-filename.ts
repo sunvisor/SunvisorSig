@@ -1,5 +1,3 @@
-import path from "node:path";
-
 function sanitizeFilename(filename: string) {
   return filename
     .normalize("NFKC")
@@ -9,8 +7,11 @@ function sanitizeFilename(filename: string) {
 }
 
 function splitFilename(filename: string) {
-  const ext = path.extname(filename);
-  const base = ext ? filename.slice(0, -ext.length) : filename;
+  const basename = filename.split(/[\\/]/).pop() ?? filename;
+  const dotIndex = basename.lastIndexOf(".");
+  const hasExtension = dotIndex > 0;
+  const ext = hasExtension ? basename.slice(dotIndex) : "";
+  const base = hasExtension ? basename.slice(0, dotIndex) : basename;
   return { base, ext };
 }
 

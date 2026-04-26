@@ -1,5 +1,4 @@
 import type { Route } from "next";
-import { randomBytes } from "node:crypto";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { requireSystemAdmin } from "@/lib/auth";
@@ -9,8 +8,13 @@ import { prisma } from "@/lib/prisma";
 import { assertRateLimit } from "@/lib/rate-limit";
 import { AppError, isAppError, type AppErrorCode } from "@/lib/app-error";
 import { getForumThemePreset } from "@/lib/forum-theme";
-import { sendInvitationEmail } from "@/lib/invitation-email";
+import { hasEmailApiConfig, sendInvitationEmail } from "@/lib/invitation-email";
 import type { InvitationStatus } from "@prisma/client";
+
+function createInvitationToken() {
+  const bytes = crypto.getRandomValues(new Uint8Array(24));
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
 
 function normalizeDescription(formData: FormData) {
   const value = String(formData.get("description") ?? "").trim();
@@ -439,7 +443,7 @@ export async function createInvitation(formData: FormData) {
       forumId,
       email,
       role: "PARTICIPANT",
-      token: randomBytes(24).toString("hex"),
+      token: createInvitationToken(),
       status: "PENDING",
       expiresAt,
       createdByUserId: actingUserId,
@@ -473,7 +477,7 @@ export async function createInvitation(formData: FormData) {
       },
     });
 
-    throw new AppError("INVALID_INPUT", "招待メールの送信に失敗しました。SMTP 設定を確認してください。");
+    throw new AppError("INVALID_INPUT", "招待メールの送信に失敗しました。メール API 設定を確認してください。");
   }
 
   revalidateForumPaths(forumId);
@@ -489,17 +493,15 @@ export async function createInvitationAction(
 
   try {
     await createInvitation(formData);
-    const deliveryMode = process.env.SMTP_HOST && process.env.SMTP_PORT && process.env.SMTP_FROM
-      ? "smtp"
-      : "log";
+    const deliveryMode = hasEmailApiConfig() ? "email-api" : "log";
 
     return {
       ok: true,
       code: undefined,
       message:
-        deliveryMode === "smtp"
+        deliveryMode === "email-api"
           ? "招待を作成し、招待メールを送信しました。"
-          : `招待を作成しました。SMTP 未設定のため Activation URL はサーバーログを確認してください。`,
+          : `招待を作成しました。メール API 未設定のため Activation URL はサーバーログを確認してください。`,
     };
   } catch (error) {
     return {

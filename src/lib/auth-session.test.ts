@@ -8,8 +8,8 @@ import {
 describe("auth session helpers", () => {
   const secret = "test-secret";
 
-  it("encodes and decodes a valid session token", () => {
-    const token = encodeSessionToken(
+  it("encodes and decodes a valid session token", async () => {
+    const token = await encodeSessionToken(
       {
         userId: "user-1",
         expiresAt: 1_800_000_000_000,
@@ -17,14 +17,14 @@ describe("auth session helpers", () => {
       secret,
     );
 
-    expect(decodeSessionToken(token, secret)).toEqual({
+    await expect(decodeSessionToken(token, secret)).resolves.toEqual({
       userId: "user-1",
       expiresAt: 1_800_000_000_000,
     });
   });
 
-  it("rejects tokens with a tampered signature", () => {
-    const token = encodeSessionToken(
+  it("rejects tokens with a tampered signature", async () => {
+    const token = await encodeSessionToken(
       {
         userId: "user-1",
         expiresAt: 1_800_000_000_000,
@@ -32,20 +32,19 @@ describe("auth session helpers", () => {
       secret,
     );
     const [data] = token.split(".");
-    const tamperedToken = `${data}.${signSessionValue(data!, "wrong-secret")}`;
+    const tamperedToken = `${data}.${await signSessionValue(data!, "wrong-secret")}`;
 
-    expect(decodeSessionToken(tamperedToken, secret)).toBeNull();
+    await expect(decodeSessionToken(tamperedToken, secret)).resolves.toBeNull();
   });
 
-  it("rejects tokens with malformed payloads", () => {
-    expect(decodeSessionToken("broken", secret)).toBeNull();
-    expect(decodeSessionToken("bm90LWpzb24.signature", secret)).toBeNull();
+  it("rejects tokens with malformed payloads", async () => {
+    await expect(decodeSessionToken("broken", secret)).resolves.toBeNull();
+    await expect(decodeSessionToken("bm90LWpzb24.signature", secret)).resolves.toBeNull();
   });
 
-  it("rejects tokens without required payload fields", () => {
-    const data = Buffer.from(JSON.stringify({ userId: "" })).toString("base64url");
-    const signature = signSessionValue(data, secret);
+  it("rejects tokens without required payload fields", async () => {
+    const data = await encodeSessionToken({ userId: "", expiresAt: 1 }, secret);
 
-    expect(decodeSessionToken(`${data}.${signature}`, secret)).toBeNull();
+    await expect(decodeSessionToken(data, secret)).resolves.toBeNull();
   });
 });
