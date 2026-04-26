@@ -29,13 +29,11 @@ export function buildChannelPostSearchWhere(query: string, status: string) {
             {
               title: {
                 contains: normalizedQuery,
-                mode: "insensitive" as const,
               },
             },
             {
               bodyMarkdown: {
                 contains: normalizedQuery,
-                mode: "insensitive" as const,
               },
             },
           ],

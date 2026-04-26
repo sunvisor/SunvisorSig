@@ -2,6 +2,7 @@ import { access, readdir, rm } from "node:fs/promises";
 import { dirname, join, relative } from "node:path";
 import { AppError } from "@/lib/app-error";
 import { prisma } from "@/lib/prisma";
+import type { PrismaClient } from "@prisma/client";
 
 const RETENTION_DAYS = 30;
 const uploadsRoot = join(process.cwd(), "public", "uploads");
@@ -345,8 +346,11 @@ export async function deleteForumById({
   });
 }
 
-export async function purgeExpiredDeletedData(now = new Date()) {
-  const expiredAttachments = await prisma.deletedAttachment.findMany({
+export async function purgeExpiredDeletedData(
+  now = new Date(),
+  client: PrismaClient = prisma,
+) {
+  const expiredAttachments = await client.deletedAttachment.findMany({
     where: {
       purgeAfter: {
         lte: now,
@@ -367,22 +371,22 @@ export async function purgeExpiredDeletedData(now = new Date()) {
   }
 
   const [deletedAttachmentRecords, deletedComments, deletedPosts] =
-    await prisma.$transaction([
-      prisma.deletedAttachment.deleteMany({
+    await client.$transaction([
+      client.deletedAttachment.deleteMany({
         where: {
           purgeAfter: {
             lte: now,
           },
         },
       }),
-      prisma.deletedComment.deleteMany({
+      client.deletedComment.deleteMany({
         where: {
           purgeAfter: {
             lte: now,
           },
         },
       }),
-      prisma.deletedPost.deleteMany({
+      client.deletedPost.deleteMany({
         where: {
           purgeAfter: {
             lte: now,

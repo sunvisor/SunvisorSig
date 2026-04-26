@@ -1,6 +1,7 @@
 import { cache } from "react";
 import { buildChannelPostSearchWhere } from "@/lib/channel-post-search";
 import { prisma } from "@/lib/prisma";
+import { parseWebhookEvents } from "@/lib/webhook-endpoints";
 
 export const getActiveUsers = cache(async () => {
   return prisma.user.findMany({
@@ -51,7 +52,7 @@ export function isForumMember(forum: { members: Array<{ userId: string }> }, use
 }
 
 export const getForum = cache(async (forumId: string) => {
-  return prisma.forum.findUnique({
+  const forum = await prisma.forum.findUnique({
     where: { id: forumId },
     include: {
       channels: {
@@ -84,6 +85,18 @@ export const getForum = cache(async (forumId: string) => {
       },
     },
   });
+
+  if (!forum) {
+    return null;
+  }
+
+  return {
+    ...forum,
+    webhookEndpoints: forum.webhookEndpoints.map((endpoint) => ({
+      ...endpoint,
+      events: parseWebhookEvents(endpoint.eventsJson),
+    })),
+  };
 });
 
 export const getChannel = cache(async (channelId: string) => {

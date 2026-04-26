@@ -60,13 +60,11 @@ export async function GET(request: Request, { params }: RouteContext) {
               {
                 title: {
                   contains: query,
-                  mode: "insensitive",
                 },
               },
               {
                 bodyMarkdown: {
                   contains: query,
-                  mode: "insensitive",
                 },
               },
             ],

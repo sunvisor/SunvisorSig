@@ -1,7 +1,43 @@
 import { randomBytes, scryptSync } from "node:crypto";
 import { PrismaClient, SystemRole, UserStatus } from "@prisma/client";
+import { PrismaD1 } from "@prisma/adapter-d1";
 
-const prisma = new PrismaClient();
+function getLocalDatabaseUrl() {
+  const databaseUrl = process.env.DATABASE_URL;
+
+  if (databaseUrl?.startsWith("file:")) {
+    return databaseUrl;
+  }
+
+  return "file:./dev.db";
+}
+
+async function createPrismaClient() {
+  if (process.env.SEED_DATABASE !== "file") {
+    const { getPlatformProxy } = await import("wrangler");
+    const platform = await getPlatformProxy({ envFiles: [] });
+
+    if (platform.env.DB) {
+      return {
+        prisma: new PrismaClient({
+          adapter: new PrismaD1(platform.env.DB),
+        }),
+        dispose: platform.dispose,
+      };
+    }
+
+    await platform.dispose();
+  }
+
+  return {
+    prisma: new PrismaClient({
+      datasourceUrl: getLocalDatabaseUrl(),
+    }),
+    dispose: async () => {},
+  };
+}
+
+const { prisma, dispose } = await createPrismaClient();
 const SCRYPT_KEY_LENGTH = 64;
 
 function hashPassword(password) {
@@ -284,4 +320,5 @@ main()
   })
   .finally(async () => {
     await prisma.$disconnect();
+    await dispose();
   });

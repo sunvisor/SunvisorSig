@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -92,7 +92,7 @@ enum AuditTargetType {
 }
 
 model User {
-  id                      String                @id @default(uuid()) @db.Uuid
+  id                      String                @id @default(uuid())
   displayName             String
   email                   String?               @unique
   mentionHandle           String?               @unique
@@ -115,7 +115,7 @@ model User {
 }
 
 model Forum {
-  id                String            @id @default(uuid()) @db.Uuid
+  id                String            @id @default(uuid())
   name              String
   description       String?
   themeName         String            @default("Ocean")
@@ -129,7 +129,7 @@ model Forum {
   themeTextSubtle   String            @default("#94a3b8")
   themePageFrom     String            @default("#f8fafc")
   themePageTo       String            @default("#eff6ff")
-  createdByUserId   String            @db.Uuid
+  createdByUserId   String
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
   createdByUser     User              @relation("ForumCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
@@ -140,8 +140,8 @@ model Forum {
 }
 
 model Invitation {
-  id              String           @id @default(uuid()) @db.Uuid
-  forumId         String           @db.Uuid
+  id              String           @id @default(uuid())
+  forumId         String
   email           String
   role            ForumRole        @default(PARTICIPANT)
   token           String           @unique
@@ -149,7 +149,7 @@ model Invitation {
   expiresAt       DateTime
   acceptedAt      DateTime?
   canceledAt      DateTime?
-  createdByUserId String           @db.Uuid
+  createdByUserId String
   createdAt       DateTime         @default(now())
   forum           Forum            @relation(fields: [forumId], references: [id], onDelete: Cascade)
   createdByUser   User             @relation("InvitationCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
@@ -159,9 +159,9 @@ model Invitation {
 }
 
 model ForumMember {
-  id       String    @id @default(uuid()) @db.Uuid
-  forumId  String    @db.Uuid
-  userId   String    @db.Uuid
+  id       String    @id @default(uuid())
+  forumId  String
+  userId   String
   role     ForumRole @default(PARTICIPANT)
   joinedAt DateTime  @default(now())
   forum    Forum     @relation(fields: [forumId], references: [id], onDelete: Cascade)
@@ -171,11 +171,11 @@ model ForumMember {
 }
 
 model Channel {
-  id              String                @id @default(uuid()) @db.Uuid
-  forumId         String                @db.Uuid
+  id              String                @id @default(uuid())
+  forumId         String
   name            String
   description     String?
-  createdByUserId String                @db.Uuid
+  createdByUserId String
   createdAt       DateTime              @default(now())
   updatedAt       DateTime              @updatedAt
   forum           Forum                 @relation(fields: [forumId], references: [id], onDelete: Cascade)
@@ -187,9 +187,9 @@ model Channel {
 }
 
 model ChannelSubscription {
-  id        String   @id @default(uuid()) @db.Uuid
-  channelId String   @db.Uuid
-  userId    String   @db.Uuid
+  id        String   @id @default(uuid())
+  channelId String
+  userId    String
   createdAt DateTime @default(now())
   channel   Channel  @relation(fields: [channelId], references: [id], onDelete: Cascade)
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -198,11 +198,11 @@ model ChannelSubscription {
 }
 
 model Post {
-  id            String           @id @default(uuid()) @db.Uuid
-  channelId     String           @db.Uuid
-  authorUserId  String           @db.Uuid
+  id            String           @id @default(uuid())
+  channelId     String
+  authorUserId  String
   title         String
-  bodyMarkdown  String           @db.Text
+  bodyMarkdown  String
   status        PostStatus?
   createdAt     DateTime         @default(now())
   updatedAt     DateTime         @updatedAt
@@ -214,8 +214,8 @@ model Post {
 }
 
 model PostAttachment {
-  id               String   @id @default(uuid()) @db.Uuid
-  postId           String   @db.Uuid
+  id               String   @id @default(uuid())
+  postId           String
   storagePath      String
   originalFilename String
   mimeType         String
@@ -227,11 +227,11 @@ model PostAttachment {
 }
 
 model Comment {
-  id            String              @id @default(uuid()) @db.Uuid
-  postId        String              @db.Uuid
-  authorUserId  String              @db.Uuid
+  id            String              @id @default(uuid())
+  postId        String
+  authorUserId  String
   type          CommentType         @default(USER)
-  bodyMarkdown  String              @db.Text
+  bodyMarkdown  String
   createdAt     DateTime            @default(now())
   updatedAt     DateTime            @updatedAt
   post          Post                @relation(fields: [postId], references: [id], onDelete: Cascade)
@@ -241,8 +241,8 @@ model Comment {
 }
 
 model CommentAttachment {
-  id               String   @id @default(uuid()) @db.Uuid
-  commentId        String   @db.Uuid
+  id               String   @id @default(uuid())
+  commentId        String
   storagePath      String
   originalFilename String
   mimeType         String
@@ -254,36 +254,36 @@ model CommentAttachment {
 }
 
 model DeletedPost {
-  id              String   @id @default(uuid()) @db.Uuid
-  originalPostId  String   @unique @db.Uuid
-  channelId       String   @db.Uuid
-  authorUserId    String   @db.Uuid
+  id              String   @id @default(uuid())
+  originalPostId  String   @unique
+  channelId       String
+  authorUserId    String
   title           String
-  bodyMarkdown    String   @db.Text
-  deletedByUserId String?  @db.Uuid
+  bodyMarkdown    String
+  deletedByUserId String?
   deletedAt       DateTime @default(now())
   purgeAfter      DateTime
   createdAt       DateTime
 }
 
 model DeletedComment {
-  id                String      @id @default(uuid()) @db.Uuid
-  originalCommentId String      @unique @db.Uuid
-  postId            String      @db.Uuid
-  authorUserId      String      @db.Uuid
+  id                String      @id @default(uuid())
+  originalCommentId String      @unique
+  postId            String
+  authorUserId      String
   type              CommentType @default(USER)
-  bodyMarkdown      String      @db.Text
-  deletedByUserId   String?     @db.Uuid
+  bodyMarkdown      String
+  deletedByUserId   String?
   deletedAt         DateTime    @default(now())
   purgeAfter        DateTime
   createdAt         DateTime
 }
 
 model DeletedAttachment {
-  id                   String                     @id @default(uuid()) @db.Uuid
-  originalAttachmentId String                     @unique @db.Uuid
+  id                   String                     @id @default(uuid())
+  originalAttachmentId String                     @unique
   ownerType            DeletedAttachmentOwnerType
-  ownerId              String                     @db.Uuid
+  ownerId              String
   storagePath          String
   originalFilename     String
   mimeType             String
@@ -293,11 +293,11 @@ model DeletedAttachment {
 }
 
 model Notification {
-  id          String           @id @default(uuid()) @db.Uuid
-  userId      String           @db.Uuid
-  postId      String           @db.Uuid
-  commentId   String?          @db.Uuid
-  actorUserId String           @db.Uuid
+  id          String           @id @default(uuid())
+  userId      String
+  postId      String
+  commentId   String?
+  actorUserId String
   type        NotificationType
   message     String
   readAt      DateTime?
@@ -312,11 +312,11 @@ model Notification {
 }
 
 model AuditLog {
-  id          String          @id @default(uuid()) @db.Uuid
-  actorUserId String          @db.Uuid
+  id          String          @id @default(uuid())
+  actorUserId String
   actionType  AuditActionType
   targetType  AuditTargetType
-  targetId    String          @db.Uuid
+  targetId    String
   targetLabel String
   metadata    Json?
   createdAt   DateTime        @default(now())
@@ -328,14 +328,14 @@ model AuditLog {
 }
 
 model WebhookEndpoint {
-  id              String              @id @default(uuid()) @db.Uuid
-  forumId         String              @db.Uuid
+  id              String              @id @default(uuid())
+  forumId         String
   name            String
   type            WebhookEndpointType
   webhookUrl      String
-  events          WebhookEventType[]
+  eventsJson      String              @default("[]")
   enabled         Boolean             @default(true)
-  createdByUserId String              @db.Uuid
+  createdByUserId String
   createdAt       DateTime            @default(now())
   updatedAt       DateTime            @updatedAt
   forum           Forum               @relation(fields: [forumId], references: [id], onDelete: Cascade)

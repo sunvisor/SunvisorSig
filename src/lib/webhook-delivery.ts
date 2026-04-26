@@ -2,6 +2,7 @@ import type { WebhookEndpoint, WebhookEndpointType, WebhookEventType } from "@pr
 import { getAppUrl } from "@/lib/app-url";
 import { AppError } from "@/lib/app-error";
 import { prisma } from "@/lib/prisma";
+import { parseWebhookEvents } from "@/lib/webhook-endpoints";
 
 export type WebhookEventPayload = {
   type: WebhookEventType | "TEST_MESSAGE";
@@ -161,24 +162,26 @@ export async function deliverWebhookEvent(event: WebhookEventPayload) {
     where: {
       forumId: event.forumId,
       enabled: true,
-      events: {
-        has: event.type as WebhookEventType,
-      },
     },
     select: {
       id: true,
       type: true,
       webhookUrl: true,
+      eventsJson: true,
     },
   });
 
   await Promise.all(
-    endpoints.map(async (endpoint) => {
-      try {
-        await postWebhook(endpoint, event);
-      } catch (error) {
-        console.error("[webhook-delivery]", endpoint.id, error);
-      }
-    }),
+    endpoints
+      .filter((endpoint) =>
+        parseWebhookEvents(endpoint.eventsJson).includes(event.type as WebhookEventType),
+      )
+      .map(async (endpoint) => {
+        try {
+          await postWebhook(endpoint, event);
+        } catch (error) {
+          console.error("[webhook-delivery]", endpoint.id, error);
+        }
+      }),
   );
 }

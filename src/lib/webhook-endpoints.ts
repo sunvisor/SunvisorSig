@@ -38,6 +38,23 @@ export function isWebhookEndpointType(value: string): value is WebhookEndpointTy
   return webhookTypeOptions.some((option) => option.value === value);
 }
 
+export function serializeWebhookEvents(events: WebhookEventType[]) {
+  return JSON.stringify(events);
+}
+
+export function parseWebhookEvents(eventsJson: string) {
+  const parsed = JSON.parse(eventsJson) as unknown;
+
+  if (!Array.isArray(parsed)) {
+    return [];
+  }
+
+  return parsed.filter(
+    (value): value is WebhookEventType =>
+      typeof value === "string" && isWebhookEventType(value),
+  );
+}
+
 export function maskWebhookUrl(webhookUrl: string) {
   try {
     const url = new URL(webhookUrl);

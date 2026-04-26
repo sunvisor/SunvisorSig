@@ -28,13 +28,11 @@ describe("buildChannelPostSearchWhere", () => {
         {
           title: {
             contains: "error",
-            mode: "insensitive",
           },
         },
         {
           bodyMarkdown: {
             contains: "error",
-            mode: "insensitive",
           },
         },
       ],
@@ -53,13 +51,11 @@ describe("buildChannelPostSearchWhere", () => {
         {
           title: {
             contains: "deploy",
-            mode: "insensitive",
           },
         },
         {
           bodyMarkdown: {
             contains: "deploy",
-            mode: "insensitive",
           },
         },
       ],
@@ -79,13 +75,11 @@ describe("buildChannelPostSearchWhere", () => {
         {
           title: {
             contains: "alert",
-            mode: "insensitive",
           },
         },
         {
           bodyMarkdown: {
             contains: "alert",
-            mode: "insensitive",
           },
         },
       ],

@@ -8,7 +8,12 @@ import { requireSystemAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { assertRateLimit } from "@/lib/rate-limit";
 import { sendWebhookTestMessage } from "@/lib/webhook-delivery";
-import { isWebhookEndpointType, isWebhookEventType } from "@/lib/webhook-endpoints";
+import {
+  isWebhookEndpointType,
+  isWebhookEventType,
+  parseWebhookEvents,
+  serializeWebhookEvents,
+} from "@/lib/webhook-endpoints";
 
 export const initialWebhookActionState = initialFormActionState;
 
@@ -44,7 +49,7 @@ function normalizeWebhookUrl(value: FormDataEntryValue | null) {
 }
 
 export async function getWebhookEndpoints() {
-  return prisma.webhookEndpoint.findMany({
+  const endpoints = await prisma.webhookEndpoint.findMany({
     orderBy: {
       createdAt: "desc",
     },
@@ -57,10 +62,12 @@ export async function getWebhookEndpoints() {
       },
     },
   });
+
+  return endpoints.map(withParsedWebhookEvents);
 }
 
 export async function getForumWebhookEndpoints(forumId: string) {
-  return prisma.webhookEndpoint.findMany({
+  const endpoints = await prisma.webhookEndpoint.findMany({
     where: { forumId },
     orderBy: {
       createdAt: "desc",
@@ -74,6 +81,15 @@ export async function getForumWebhookEndpoints(forumId: string) {
       },
     },
   });
+
+  return endpoints.map(withParsedWebhookEvents);
+}
+
+function withParsedWebhookEvents<T extends { eventsJson: string }>(endpoint: T) {
+  return {
+    ...endpoint,
+    events: parseWebhookEvents(endpoint.eventsJson),
+  };
 }
 
 export async function createWebhookEndpoint(formData: FormData) {
@@ -105,7 +121,7 @@ export async function createWebhookEndpoint(formData: FormData) {
       name,
       type: typeValue,
       webhookUrl,
-      events,
+      eventsJson: serializeWebhookEvents(events),
       createdByUserId: currentUser.id,
     },
   });
@@ -118,7 +134,7 @@ export async function createWebhookEndpoint(formData: FormData) {
     targetLabel: endpoint.name,
     metadata: {
       type: endpoint.type,
-      events: endpoint.events,
+      events,
       enabled: endpoint.enabled,
       forumId,
     },
@@ -196,7 +212,7 @@ export async function toggleWebhookEndpoint(formData: FormData) {
     targetLabel: updated.name,
     metadata: {
       enabled: updated.enabled,
-      events: updated.events,
+      events: parseWebhookEvents(updated.eventsJson),
       type: updated.type,
     },
   });
@@ -253,7 +269,7 @@ export async function deleteWebhookEndpoint(formData: FormData) {
     targetLabel: endpoint.name,
     metadata: {
       type: endpoint.type,
-      events: endpoint.events,
+      events: parseWebhookEvents(endpoint.eventsJson),
     },
   });
 

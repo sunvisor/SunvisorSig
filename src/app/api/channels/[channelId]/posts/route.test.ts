@@ -117,13 +117,11 @@ describe("/api/channels/[channelId]/posts", () => {
           {
             title: {
               contains: "hello",
-              mode: "insensitive",
             },
           },
           {
             bodyMarkdown: {
               contains: "hello",
-              mode: "insensitive",
             },
           },
         ],
