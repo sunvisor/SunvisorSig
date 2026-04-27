@@ -19,10 +19,9 @@
   ],
   "d1_databases": [
     {
-      "binding": "DB",
+      "binding": "sunvisor_sig",
       "database_name": "sunvisor-sig",
-      "database_id": "00000000-0000-0000-0000-000000000000",
-      "migrations_dir": "prisma/d1/migrations"
+      "database_id": "4362addf-b0c1-4783-8944-7167d2a88f78"
     }
   ],
   "r2_buckets": [
