@@ -1,1 +1,6 @@
 NEXTJS_ENV=development
+APP_URL="http://localhost:8788"
+AUTH_SECRET="replace-this-with-a-long-random-string"
+EMAIL_API_URL=""
+EMAIL_API_TOKEN=""
+EMAIL_FROM="SunvisorSig <no-reply@example.com>"

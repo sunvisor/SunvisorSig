@@ -1,8 +1,10 @@
 # SunvisorSig
 
-Next.js + Tailwind CSS + Prisma + PostgreSQL + Docker の開発用ひな形です。
+Next.js + Tailwind CSS + Prisma + Cloudflare D1/R2 の SIG アプリケーションです。
 
 ## 開発環境の起動手順
+
+詳細は [docs/local-development.md](docs/local-development.md) を参照してください。
 
 ### 事前準備
 
@@ -64,31 +66,10 @@ npm run db:migrate
 - `EMAIL_API_URL`, `EMAIL_API_TOKEN`, `EMAIL_FROM` を設定すると HTTP メール API で招待メールを送信します
 - メール API 未設定の場合は開発用として招待は作成され、Activation URL はサーバーログへ出力されます
 
-### Docker で起動する場合
-
-1. アプリケーションと PostgreSQL を起動します。
+Cloudflare Workers 互換確認:
 
 ```bash
-docker compose up --build
-```
-
-2. ブラウザで `http://localhost:3000/forums` を開きます。
-3. フォーラム一覧が表示されれば起動完了です。
-
-補足:
-- PostgreSQL はホスト側で `localhost:55432` に公開されます
-- Docker 外から Prisma や SQL クライアントで接続する場合は `.env` の `DATABASE_URL` も `localhost:55432` を使います
-
-バックグラウンドで起動する場合:
-
-```bash
-docker compose up --build -d
-```
-
-停止する場合:
-
-```bash
-docker compose down
+npm run preview
 ```
 
 ## 運用コマンド
