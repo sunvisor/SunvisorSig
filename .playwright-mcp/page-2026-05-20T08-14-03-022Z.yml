@@ -1,0 +1,25 @@
+- generic [active] [ref=e1]:
+  - link "ログイン" [ref=e3] [cursor=pointer]:
+    - /url: /login
+  - main [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e8]:
+        - paragraph [ref=e9]: Login
+        - heading "ログイン" [level=1] [ref=e10]
+        - paragraph [ref=e11]: 招待で作成したアカウントのメールアドレスとパスワードでログインします。
+      - generic [ref=e13]:
+        - heading "サインイン" [level=2] [ref=e14]
+        - generic [ref=e15]:
+          - generic [ref=e16]:
+            - generic [ref=e17]:
+              - generic [ref=e18]: メールアドレス
+              - textbox "メールアドレス" [ref=e19]:
+                - /placeholder: user@example.com
+            - generic [ref=e20]:
+              - generic [ref=e21]: パスワード
+              - textbox "パスワード" [ref=e22]
+            - button "ログイン" [ref=e24]
+          - generic [ref=e25]:
+            - paragraph [ref=e26]: 補足
+            - paragraph [ref=e27]: 招待をまだ受理していない場合は、フォーラム設定画面の招待一覧にある Activation URL からアカウントを有効化してください。
+  - alert [ref=e28]
