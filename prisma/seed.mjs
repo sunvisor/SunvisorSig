@@ -1,7 +1,8 @@
 import { PrismaClient, SystemRole, UserStatus } from "@prisma/client";
 import { PrismaD1 } from "@prisma/adapter-d1";
 
-const PBKDF2_ITERATIONS = 210_000;
+// Cloudflare Workers' Web Crypto caps PBKDF2 at 100,000 iterations.
+const PBKDF2_ITERATIONS = 100_000;
 const PBKDF2_KEY_LENGTH_BITS = 256;
 
 function getLocalDatabaseUrl() {
