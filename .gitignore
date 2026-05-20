@@ -23,3 +23,6 @@ public/uploads
 .vscode/
 
 .scratches/
+
+# Playwright MCP の実行時アーティファクト
+.playwright-mcp/
